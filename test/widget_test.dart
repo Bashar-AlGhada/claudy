@@ -1,30 +1,134 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:claudy/app/app.dart';
+import 'package:claudy/core/i18n/i18n_store.dart';
+import 'package:claudy/core/i18n/locale_keys.dart';
+import 'package:claudy/features/weather/domain/models/current_weather.dart';
+import 'package:claudy/features/weather/domain/models/daily_weather.dart';
+import 'package:claudy/features/weather/domain/models/geo_coordinate.dart';
+import 'package:claudy/features/weather/domain/models/hourly_weather.dart';
+import 'package:claudy/features/weather/domain/models/weather_reading.dart';
+import 'package:claudy/features/weather/domain/models/weather_snapshot.dart';
+import 'package:claudy/features/weather/providers/weather_reading_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:claudy/main.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  setUpAll(() {
+    I18nStore.setKeys({
+      'en': {
+        LocaleKeys.appTitle: 'Claudy',
+        LocaleKeys.navWeather: 'Weather',
+        LocaleKeys.navMap: 'Map',
+        LocaleKeys.navSearch: 'Search',
+        LocaleKeys.navSettings: 'Settings',
+      },
+      'ar': {
+        LocaleKeys.appTitle: 'كلودي',
+        LocaleKeys.navWeather: 'الطقس',
+        LocaleKeys.navMap: 'الخريطة',
+        LocaleKeys.navSearch: 'بحث',
+        LocaleKeys.navSettings: 'الإعدادات',
+      },
+    });
+    Get.addTranslations(I18nStore.keys);
   });
+
+  testWidgets('Shows bottom navigation labels (EN)', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'settings.locale': 'en',
+      'settings.location.mode': 'manual',
+      'settings.location.manualLat': 52.37,
+      'settings.location.manualLon': 4.89,
+    });
+
+    await tester.pumpWidget(
+      App(
+        overrides: [
+          weatherReadingProvider.overrideWith((ref) async => _reading()),
+        ],
+      ),
+    );
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (find.byType(NavigationBar).evaluate().isNotEmpty) break;
+    }
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    final destinations = navBar.destinations.cast<NavigationDestination>();
+    expect(destinations.map((d) => d.label).toList(), ['Weather', 'Map', 'Search', 'Settings']);
+  });
+
+  testWidgets('Renders RTL direction when locale is AR', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'settings.locale': 'ar',
+      'settings.location.mode': 'manual',
+      'settings.location.manualLat': 52.37,
+      'settings.location.manualLon': 4.89,
+    });
+
+    await tester.pumpWidget(
+      App(
+        overrides: [
+          weatherReadingProvider.overrideWith((ref) async => _reading()),
+        ],
+      ),
+    );
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (find.byType(NavigationBar).evaluate().isEmpty) continue;
+      final directions =
+          tester.widgetList(find.byType(Directionality)).map((e) => (e as Directionality).textDirection);
+      if (directions.contains(TextDirection.rtl)) break;
+    }
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    final destinations = navBar.destinations.cast<NavigationDestination>();
+    expect(destinations.map((d) => d.label).toList(), ['الطقس', 'الخريطة', 'بحث', 'الإعدادات']);
+
+    final directionality = tester.widget<Directionality>(
+      find.ancestor(of: find.byType(NavigationBar), matching: find.byType(Directionality)).first,
+    );
+    expect(directionality.textDirection, TextDirection.rtl);
+  });
+}
+
+WeatherReading _reading() {
+  final now = DateTime(2026, 1, 1, 12);
+  return WeatherReading(
+    snapshot: WeatherSnapshot(
+      coordinate: const GeoCoordinate(lat: 52.37, lon: 4.89),
+      providerName: 'Test',
+      fetchedAt: now,
+      current: CurrentWeather(
+        temperatureC: 10,
+        feelsLikeC: 9,
+        humidityPercent: 50,
+        windSpeedMps: 1.2,
+        conditionCode: 800,
+        observedAt: now,
+      ),
+      hourly: [
+        HourlyWeather(
+          time: now,
+          temperatureC: 10,
+          precipProbabilityPercent: 0,
+          conditionCode: 800,
+        ),
+      ],
+      daily: [
+        DailyWeather(
+          date: DateTime(now.year, now.month, now.day),
+          minTemperatureC: 8,
+          maxTemperatureC: 12,
+          conditionCode: 800,
+        ),
+      ],
+    ),
+    isStale: false,
+    source: WeatherDataSource.cache,
+  );
 }
