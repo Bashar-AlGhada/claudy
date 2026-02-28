@@ -1,0 +1,33 @@
+name: Windows Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2019
+          - windows-2022
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Unit and widget tests
+        run: flutter test
+
+      - name: Integration tests (Windows)
+        run: flutter test -d windows integration_test -- --timeout=45m
