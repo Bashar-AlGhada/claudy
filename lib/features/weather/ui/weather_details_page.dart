@@ -2,6 +2,10 @@ import 'package:claudy/core/i18n/locale_keys.dart';
 import 'package:claudy/features/weather/providers/weather_reading_provider.dart';
 import 'package:claudy/features/weather/domain/models/daily_weather.dart';
 import 'package:claudy/features/weather/domain/models/hourly_weather.dart';
+import 'package:claudy/core/theme/tokens.dart';
+import 'package:claudy/core/ui/app_skeleton.dart';
+import 'package:claudy/core/ui/app_states.dart';
+import 'package:claudy/core/ui/app_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
@@ -16,60 +20,81 @@ class WeatherDetailsPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(LocaleKeys.weatherDetails.tr)),
       body: SafeArea(
-        child: reading.when(
-          data: (data) {
-            final hourly = data.snapshot.hourly;
-            final daily = data.snapshot.daily;
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _MetricRow(
-                  label: LocaleKeys.weatherFeelsLike.tr,
-                  value: '${data.snapshot.current.feelsLikeC.round()}°',
-                ),
-                _MetricRow(
-                  label: LocaleKeys.weatherHumidity.tr,
-                  value: '${data.snapshot.current.humidityPercent}%',
-                ),
-                _MetricRow(
-                  label: LocaleKeys.weatherWind.tr,
-                  value: '${data.snapshot.current.windSpeedMps.toStringAsFixed(1)} m/s',
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  LocaleKeys.weatherHourly.tr,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 120,
-                  child: CustomPaint(
-                    painter: _HourlySparklinePainter(
-                      items: hourly,
-                      color: Theme.of(context).colorScheme.primary,
+        child: AppConstrained(
+          padding: EdgeInsets.zero,
+          child: reading.when(
+            data: (data) {
+              if (data == null) {
+                return AppEmptyState(
+                  title: LocaleKeys.weatherNoLocation.tr,
+                );
+              }
+              final hourly = data.snapshot.hourly;
+              final daily = data.snapshot.daily;
+              return ListView(
+                padding: const EdgeInsets.all(Tokens.space16),
+                children: [
+                  _MetricRow(
+                    label: LocaleKeys.weatherFeelsLike.tr,
+                    value: '${data.snapshot.current.feelsLikeC.round()}°',
+                  ),
+                  _MetricRow(
+                    label: LocaleKeys.weatherHumidity.tr,
+                    value: '${data.snapshot.current.humidityPercent}%',
+                  ),
+                  _MetricRow(
+                    label: LocaleKeys.weatherWind.tr,
+                    value: '${data.snapshot.current.windSpeedMps.toStringAsFixed(1)} m/s',
+                  ),
+                  const SizedBox(height: Tokens.space16),
+                  Text(
+                    LocaleKeys.weatherHourly.tr,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: Tokens.space12),
+                  SizedBox(
+                    height: 120,
+                    child: Semantics(
+                      label: LocaleKeys.weatherHourly.tr,
+                      child: CustomPaint(
+                        painter: _HourlySparklinePainter(
+                          items: hourly,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  LocaleKeys.weatherDaily.tr,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 140,
-                  child: CustomPaint(
-                    painter: _DailyRangePainter(
-                      items: daily,
-                      color: Theme.of(context).colorScheme.secondary,
+                  const SizedBox(height: Tokens.space16),
+                  Text(
+                    LocaleKeys.weatherDaily.tr,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: Tokens.space12),
+                  SizedBox(
+                    height: 140,
+                    child: Semantics(
+                      label: LocaleKeys.weatherDaily.tr,
+                      child: CustomPaint(
+                        painter: _DailyRangePainter(
+                          items: daily,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
-          error: (_, __) => const SizedBox.shrink(),
-          loading: () => const Center(child: CircularProgressIndicator()),
+                ],
+              );
+            },
+            error: (_, __) => AppErrorState(
+              message: LocaleKeys.weatherError.tr,
+              retryLabel: LocaleKeys.weatherRetry.tr,
+              onRetry: () => ref.invalidate(weatherReadingProvider),
+            ),
+            loading: () => const Padding(
+              padding: EdgeInsets.all(Tokens.space16),
+              child: AppSkeletonList(),
+            ),
+          ),
         ),
       ),
     );

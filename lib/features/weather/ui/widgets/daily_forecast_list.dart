@@ -1,5 +1,6 @@
 import 'package:claudy/features/weather/domain/models/daily_weather.dart';
 import 'package:claudy/features/weather/ui/widgets/weather_condition_icon.dart';
+import 'package:claudy/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 
 class DailyForecastList extends StatelessWidget {
@@ -12,7 +13,7 @@ class DailyForecastList extends StatelessWidget {
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
       itemCount: items.length,
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {
@@ -38,9 +39,9 @@ class _DailyRow extends StatelessWidget {
         children: [
           Expanded(child: Text(day)),
           WeatherConditionIcon(conditionCode: item.conditionCode, size: 18),
-          const SizedBox(width: 12),
+          const SizedBox(width: Tokens.space12),
           Text('${item.minTemperatureC.round()}°'),
-          const SizedBox(width: 8),
+          const SizedBox(width: Tokens.space8),
           Text('${item.maxTemperatureC.round()}°'),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:claudy/core/theme/app_theme.dart';
+import 'package:claudy/core/theme/tokens.dart';
 import 'package:claudy/core/theme/theme_preset.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,11 +19,37 @@ class ThemeNotifier extends AsyncNotifier<AppTheme> {
     final presetId = _readPreset(prefs.getString(_keyPreset));
     final preset = ThemePresets.byId(presetId);
 
+    final baseScheme = presetId == ThemePresetId.highContrast
+        ? (preset.brightness == Brightness.dark
+            ? const ColorScheme.highContrastDark()
+            : const ColorScheme.highContrastLight())
+        : ColorScheme.fromSeed(
+            seedColor: preset.seed,
+            brightness: preset.brightness,
+          );
+
     final base = ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: preset.seed,
-        brightness: preset.brightness,
+      colorScheme: baseScheme,
+      dividerTheme: const DividerThemeData(space: 1, thickness: 1),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Tokens.cornerRadius),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(Tokens.cornerRadius),
+        ),
+      ),
+      listTileTheme: const ListTileThemeData(
+        contentPadding: EdgeInsets.symmetric(horizontal: Tokens.space16),
+      ),
+      cardTheme: CardThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Tokens.cornerRadius),
+        ),
       ),
     );
 

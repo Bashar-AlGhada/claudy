@@ -29,38 +29,86 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final index = _locationToIndex(GoRouterState.of(context).uri.toString());
 
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (next) {
-          final nextRoute = _indexToRoute(next);
-          if (nextRoute != GoRouterState.of(context).uri.toString()) {
-            context.go(nextRoute);
-          }
-        },
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.cloud_outlined),
-            selectedIcon: const Icon(Icons.cloud),
-            label: LocaleKeys.navWeather.tr,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.map_outlined),
-            selectedIcon: const Icon(Icons.map),
-            label: LocaleKeys.navMap.tr,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.search),
-            label: LocaleKeys.navSearch.tr,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
-            label: LocaleKeys.navSettings.tr,
-          ),
-        ],
+    final destinations = [
+      NavigationDestination(
+        icon: const Icon(Icons.cloud_outlined),
+        selectedIcon: const Icon(Icons.cloud),
+        label: LocaleKeys.navWeather.tr,
       ),
+      NavigationDestination(
+        icon: const Icon(Icons.map_outlined),
+        selectedIcon: const Icon(Icons.map),
+        label: LocaleKeys.navMap.tr,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.search),
+        label: LocaleKeys.navSearch.tr,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.settings_outlined),
+        selectedIcon: const Icon(Icons.settings),
+        label: LocaleKeys.navSettings.tr,
+      ),
+    ];
+
+    void onSelect(int next) {
+      final nextRoute = _indexToRoute(next);
+      if (nextRoute != GoRouterState.of(context).uri.toString()) {
+        context.go(nextRoute);
+      }
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useRail = constraints.maxWidth >= 720;
+        if (!useRail) {
+          return Scaffold(
+            body: child,
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: index,
+              onDestinationSelected: onSelect,
+              destinations: destinations,
+            ),
+          );
+        }
+
+        return Scaffold(
+          body: SafeArea(
+            child: Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: index,
+                  onDestinationSelected: onSelect,
+                  labelType: NavigationRailLabelType.all,
+                  destinations: [
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.cloud_outlined),
+                      selectedIcon: const Icon(Icons.cloud),
+                      label: Text(LocaleKeys.navWeather.tr),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.map_outlined),
+                      selectedIcon: const Icon(Icons.map),
+                      label: Text(LocaleKeys.navMap.tr),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.search),
+                      label: Text(LocaleKeys.navSearch.tr),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.settings_outlined),
+                      selectedIcon: const Icon(Icons.settings),
+                      label: Text(LocaleKeys.navSettings.tr),
+                    ),
+                  ],
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(child: child),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

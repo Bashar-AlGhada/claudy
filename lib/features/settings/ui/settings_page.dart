@@ -6,6 +6,11 @@ import 'package:claudy/core/notifications/notification_preferences.dart';
 import 'package:claudy/core/notifications/notification_provider.dart';
 import 'package:claudy/core/routing/app_routes.dart';
 import 'package:claudy/core/theme/theme_provider.dart';
+import 'package:claudy/core/diagnostics/diagnostics_service.dart';
+import 'package:claudy/core/logging/log_buffer.dart';
+import 'package:claudy/core/perf/frame_monitor.dart';
+import 'package:claudy/core/theme/tokens.dart';
+import 'package:claudy/core/ui/app_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
@@ -26,15 +31,17 @@ class SettingsPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(LocaleKeys.navSettings.tr)),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (theme != null)
-              ListTile(
-                title: Text(LocaleKeys.settingsTheme.tr),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push(AppRoutes.settingsTheme),
-              ),
+        child: AppConstrained(
+          padding: EdgeInsets.zero,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(vertical: Tokens.space16),
+            children: [
+              if (theme != null)
+                ListTile(
+                  title: Text(LocaleKeys.settingsTheme.tr),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push(AppRoutes.settingsTheme),
+                ),
             if (notificationPrefs != null) ...[
               SwitchListTile(
                 title: Text(LocaleKeys.settingsNotificationsEnabled.tr),
@@ -77,7 +84,7 @@ class SettingsPage extends ConsumerWidget {
             ListTile(
               title: Text(LocaleKeys.settingsBackgroundRefresh.tr),
               trailing: Wrap(
-                spacing: 8,
+                spacing: Tokens.space8,
                 children: [
                   OutlinedButton(
                     onPressed: () => BackgroundScheduler.disableRefresh(),
@@ -149,7 +156,37 @@ class SettingsPage extends ConsumerWidget {
                 onChanged: (enabled) =>
                     ref.read(themeProvider.notifier).setLowPowerMode(enabled),
               ),
-          ],
+            const SizedBox(height: Tokens.space8),
+            const Divider(height: 1),
+            const SizedBox(height: Tokens.space8),
+            ListTile(
+              title: Text(LocaleKeys.settingsDiagnostics.tr),
+              trailing: FilledButton(
+                onPressed: () async {
+                  final svc = DiagnosticsService();
+                  final bundle = await svc.collect();
+                  bundle['logs'] = {'recent': LogBuffer.snapshot()};
+                  bundle['performance'] = {'frameTimings': FrameMonitor.metrics()};
+                  try {
+                    final file = await svc.exportToTemp(bundle);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(LocaleKeys.diagnosticsExportSuccess.trParams({'path': file.path}))),
+                      );
+                    }
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(LocaleKeys.diagnosticsExportFailure.tr)),
+                      );
+                    }
+                  }
+                },
+                child: Text(LocaleKeys.settingsExportDiagnostics.tr),
+              ),
+            ),
+            ],
+          ),
         ),
       ),
     );

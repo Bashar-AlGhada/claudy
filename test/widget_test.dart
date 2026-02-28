@@ -36,6 +36,11 @@ void main() {
   });
 
   testWidgets('Shows bottom navigation labels (EN)', (WidgetTester tester) async {
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(480, 800);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     SharedPreferences.setMockInitialValues({
       'settings.locale': 'en',
       'settings.location.mode': 'manual',
@@ -62,6 +67,11 @@ void main() {
   });
 
   testWidgets('Renders RTL direction when locale is AR', (WidgetTester tester) async {
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(480, 800);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     SharedPreferences.setMockInitialValues({
       'settings.locale': 'ar',
       'settings.location.mode': 'manual',
@@ -93,6 +103,35 @@ void main() {
       find.ancestor(of: find.byType(NavigationBar), matching: find.byType(Directionality)).first,
     );
     expect(directionality.textDirection, TextDirection.rtl);
+  });
+
+  testWidgets('Uses navigation rail on wide layouts', (WidgetTester tester) async {
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 800);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      'settings.locale': 'en',
+      'settings.location.mode': 'manual',
+      'settings.location.manualLat': 52.37,
+      'settings.location.manualLon': 4.89,
+    });
+
+    await tester.pumpWidget(
+      App(
+        overrides: [
+          weatherReadingProvider.overrideWith((ref) async => _reading()),
+        ],
+      ),
+    );
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (find.byType(NavigationRail).evaluate().isNotEmpty) break;
+    }
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
   });
 }
 

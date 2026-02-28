@@ -4,13 +4,19 @@ import 'package:claudy/core/location/location_provider.dart';
 import 'package:claudy/core/routing/app_routes.dart';
 import 'package:claudy/core/theme/theme_provider.dart';
 import 'package:claudy/features/weather/providers/weather_reading_provider.dart';
+import 'package:claudy/features/weather/domain/models/weather_reading.dart';
 import 'package:claudy/features/weather/ui/widgets/current_weather_card.dart';
 import 'package:claudy/features/weather/ui/widgets/daily_forecast_list.dart';
 import 'package:claudy/features/weather/ui/widgets/hourly_forecast_list.dart';
+import 'package:claudy/core/theme/tokens.dart';
+import 'package:claudy/core/ui/app_skeleton.dart';
+import 'package:claudy/core/ui/app_layout.dart';
+import 'package:claudy/core/ui/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
+import 'package:claudy/features/weather/ui/background/weather_background.dart';
 
 class WeatherHomePage extends ConsumerWidget {
   const WeatherHomePage({super.key});
@@ -21,94 +27,75 @@ class WeatherHomePage extends ConsumerWidget {
     final reading = ref.watch(weatherReadingProvider);
     final lowPower = ref.watch(themeProvider).valueOrNull?.lowPowerMode ?? false;
 
-    final content = RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(weatherReadingProvider);
-        await ref.read(weatherReadingProvider.future);
-      },
-      child: ListView(
-        padding: const EdgeInsets.only(top: 16, bottom: 24),
-        children: [
-          if (location.valueOrNull?.isPermissionDenied == true)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _InlineMessage(
-                message: LocaleKeys.weatherLocationDenied.tr,
-                actionLabel: LocaleKeys.weatherEnableLocation.tr,
-                onAction: () =>
-                    ref.read(locationProvider.notifier).requestPermissionAndRefresh(),
-                secondaryActionLabel: LocaleKeys.weatherChooseLocation.tr,
-                onSecondaryAction: () => context.go(AppRoutes.search),
+    final content = AppConstrained(
+      padding: EdgeInsets.zero,
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(weatherReadingProvider.notifier).refresh();
+        },
+        child: ListView(
+          key: const PageStorageKey('weather_home_list'),
+          padding: const EdgeInsets.only(top: Tokens.space16, bottom: Tokens.space24),
+          children: [
+            if (location.valueOrNull?.isPermissionDenied == true)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
+                child: _InlineMessage(
+                  message: LocaleKeys.weatherLocationDenied.tr,
+                  actionLabel: LocaleKeys.weatherEnableLocation.tr,
+                  onAction: () =>
+                      ref.read(locationProvider.notifier).requestPermissionAndRefresh(),
+                  secondaryActionLabel: LocaleKeys.weatherChooseLocation.tr,
+                  onSecondaryAction: () => context.go(AppRoutes.search),
+                ),
               ),
-            ),
-          const SizedBox(height: 12),
-          reading.when(
-            data: (value) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Semantics(
-                      button: true,
-                      label: LocaleKeys.weatherDetails.tr,
-                      child: GestureDetector(
-                        onTap: () => context.push(AppRoutes.detailsFor('current')),
-                        child: CurrentWeatherCard(
-                          weather: value.snapshot.current,
-                          isStale: value.isStale,
-                          providerName: value.snapshot.providerName,
-                          fetchedAt: value.snapshot.fetchedAt,
-                        ),
-                      ),
-                    ),
+            const SizedBox(height: Tokens.space12),
+            if (reading.valueOrNull != null) ...[
+              if (reading.isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: Tokens.space16),
+                  child: LinearProgressIndicator(minHeight: 2),
+                ),
+              _WeatherContent(
+                value: reading.valueOrNull!,
+                onOpenDetails: () => context.push(AppRoutes.detailsFor('current')),
+              ),
+            ] else
+              reading.when(
+                data: (value) {
+                  if (value == null) {
+                    return AppEmptyState(
+                      title: LocaleKeys.weatherNoLocation.tr,
+                      actionLabel: LocaleKeys.weatherChooseLocation.tr,
+                      onAction: () => context.go(AppRoutes.search),
+                    );
+                  }
+                  return _WeatherContent(
+                    value: value,
+                    onOpenDetails: () => context.push(AppRoutes.detailsFor('current')),
+                  );
+                },
+                error: (e, _) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
+                  child: _ErrorCard(
+                    error: e,
+                    onRetry: () => ref.invalidate(weatherReadingProvider),
                   ),
-                  const SizedBox(height: 16),
-                  HourlyForecastList(items: value.snapshot.hourly),
-                  const SizedBox(height: 12),
-                  DailyForecastList(items: value.snapshot.daily),
-                ],
-              );
-            },
-            error: (e, _) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _ErrorCard(
-                error: e,
-                onRetry: () => ref.invalidate(weatherReadingProvider),
+                ),
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: Tokens.space16),
+                  child: AppSkeletonList(),
+                ),
               ),
-            ),
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 
     return Scaffold(
       appBar: AppBar(title: Text(LocaleKeys.navWeather.tr)),
       body: SafeArea(
-        child: lowPower
-            ? Container(
-                color: Theme.of(context).colorScheme.surface,
-                child: content,
-              )
-            : AnimatedContainer(
-                duration: const Duration(milliseconds: 450),
-                curve: Curves.easeOutCubic,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
-                      Theme.of(context).colorScheme.surface,
-                    ],
-                  ),
-                ),
-                child: content,
-              ),
+        child: WeatherBackground(lowPower: lowPower, child: content),
       ),
     );
   }
@@ -185,6 +172,48 @@ class _ErrorCard extends StatelessWidget {
           FilledButton(onPressed: onRetry, child: Text(LocaleKeys.weatherRetry.tr)),
         ],
       ),
+    );
+  }
+}
+
+class _WeatherContent extends StatelessWidget {
+  const _WeatherContent({required this.value, required this.onOpenDetails});
+
+  final WeatherReading value;
+  final VoidCallback onOpenDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
+          child: FocusableActionDetector(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(Tokens.cornerRadius),
+                onTap: onOpenDetails,
+                child: Semantics(
+                  button: true,
+                  label: LocaleKeys.weatherDetails.tr,
+                  child: CurrentWeatherCard(
+                    weather: value.snapshot.current,
+                    isStale: value.isStale,
+                    providerName: value.snapshot.providerName,
+                    fetchedAt: value.snapshot.fetchedAt,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: Tokens.space16),
+        HourlyForecastList(items: value.snapshot.hourly),
+        const SizedBox(height: Tokens.space12),
+        DailyForecastList(items: value.snapshot.daily),
+      ],
     );
   }
 }

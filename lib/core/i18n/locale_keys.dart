@@ -11,6 +11,7 @@ class LocaleKeys {
   static const weatherStale = 'weather_stale';
   static const weatherUpdatedAt = 'weather_updated_at';
   static const weatherRetry = 'weather_retry';
+  static const weatherNoLocation = 'weather_no_location';
   static const weatherLocationDenied = 'weather_location_denied';
   static const weatherEnableLocation = 'weather_enable_location';
   static const weatherChooseLocation = 'weather_choose_location';
@@ -52,6 +53,10 @@ class LocaleKeys {
   static const settingsLanguage = 'settings_language';
   static const settingsLowPower = 'settings_low_power';
   static const settingsTheme = 'settings_theme';
+  static const settingsDiagnostics = 'settings_diagnostics';
+  static const settingsExportDiagnostics = 'settings_export_diagnostics';
+  static const diagnosticsExportSuccess = 'diagnostics_export_success';
+  static const diagnosticsExportFailure = 'diagnostics_export_failure';
   static const themeTitle = 'theme_title';
   static const themePresetAurora = 'theme_preset_aurora';
   static const themePresetMinimal = 'theme_preset_minimal';

@@ -5,6 +5,8 @@ import 'package:claudy/core/errors/app_exception.dart';
 import 'package:claudy/core/http/interceptors/rate_limit_interceptor.dart';
 import 'package:claudy/core/result/app_result.dart';
 import 'package:claudy/features/weather/data/cache/weather_cache.dart';
+import 'package:claudy/features/weather/data/cache/weather_cache_key.dart';
+import 'package:claudy/features/weather/data/cache/weather_cache_policy.dart';
 import 'package:claudy/features/weather/data/cache/weather_cache_provider.dart';
 import 'package:claudy/features/weather/data/weather_provider.dart';
 import 'package:claudy/features/weather/data/weather_provider_selector.dart';
@@ -29,8 +31,6 @@ class WeatherRepositoryImpl implements WeatherRepository {
   final Ref _ref;
   final WeatherProvider _provider;
 
-  static const _snapshotTtl = Duration(minutes: 10);
-
   @override
   Future<AppResult<WeatherReading>> getWeather(
     GeoCoordinate coordinate, {
@@ -39,12 +39,12 @@ class WeatherRepositoryImpl implements WeatherRepository {
     bool forceRefresh = false,
   }) async {
     final cache = await _ref.read(weatherCacheProvider.future);
-    final key = _cacheKey(_provider.attributionName, coordinate);
+    final key = weatherCacheKey(providerName: _provider.attributionName, coordinate: coordinate);
     final now = _ref.read(clockProvider).now();
 
     final cached = await cache.read(key);
     final cachedAge = cached == null ? null : now.difference(cached.fetchedAt);
-    final cachedIsStale = cachedAge == null ? true : cachedAge > _snapshotTtl;
+    final cachedIsStale = cachedAge == null ? true : cachedAge > weatherSnapshotTtl;
 
     if (!forceRefresh && cached != null && !cachedIsStale) {
       return Success(
@@ -98,12 +98,6 @@ class WeatherRepositoryImpl implements WeatherRepository {
       }
       return Failure(failure);
     }
-  }
-
-  String _cacheKey(String providerName, GeoCoordinate coordinate) {
-    final lat = (coordinate.lat * 10000).round() / 10000;
-    final lon = (coordinate.lon * 10000).round() / 10000;
-    return 'weather:$providerName:$lat,$lon';
   }
 
   AppFailure _mapError(Object e) {

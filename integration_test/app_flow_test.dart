@@ -7,6 +7,7 @@ import 'package:claudy/core/location/location_mode.dart';
 import 'package:claudy/core/location/location_storage.dart';
 import 'package:claudy/core/notifications/noop_notification_service.dart';
 import 'package:claudy/core/notifications/notification_provider.dart';
+import 'package:claudy/core/perf/frame_monitor.dart';
 import 'package:claudy/core/routing/app_routes.dart';
 import 'package:claudy/core/routing/app_router.dart';
 import 'package:claudy/core/time/clock.dart';
@@ -26,49 +27,57 @@ import 'package:geolocator/geolocator.dart';
 
 import 'support/fakes.dart';
 
+@Timeout(Duration(minutes: 45))
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
     'First launch, pick location, offline uses cached snapshot, theme change',
     (tester) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+      FrameMonitor.reset();
+      FrameMonitor.start();
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(480, 900);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
       await prefs.setString('settings.locale', 'en');
 
-    await I18nLoader.load();
-    Get.addTranslations(I18nStore.keys);
+      await I18nLoader.load();
+      Get.addTranslations(I18nStore.keys);
       Get.updateLocale(const Locale('en'));
 
-    final now = DateTime(2026, 2, 21, 12, 0);
-    final fakeLocation = FakeLocationClient(
-      serviceEnabled: true,
-      permission: LocationPermission.denied,
-      position: Position(
-        latitude: 52.370216,
-        longitude: 4.895168,
-        timestamp: now,
-        accuracy: 10,
-        altitudeAccuracy: 0,
-        altitude: 0,
-        heading: 0,
-        headingAccuracy: 0,
-        speed: 0,
-        speedAccuracy: 0,
-      ),
-    );
-    final fakeWeather = FakeWeatherProvider(now: now);
-    final fakeCache = InMemoryWeatherCache();
-    final fakeSearch = FakePlaceSearchRepository(
-      results: [
-        Place(
-          name: 'Amsterdam',
-          country: 'NL',
-          coordinate: const GeoCoordinate(lat: 52.370216, lon: 4.895168),
+      final now = DateTime(2026, 2, 21, 12, 0);
+      final fakeLocation = FakeLocationClient(
+        serviceEnabled: true,
+        permission: LocationPermission.denied,
+        position: Position(
+          latitude: 52.370216,
+          longitude: 4.895168,
+          timestamp: now,
+          accuracy: 10,
+          altitudeAccuracy: 0,
+          altitude: 0,
+          heading: 0,
+          headingAccuracy: 0,
+          speed: 0,
+          speedAccuracy: 0,
         ),
-      ],
-    );
-    final clock = _MutableClock(now);
+      );
+      final fakeWeather = FakeWeatherProvider(now: now);
+      final fakeCache = InMemoryWeatherCache();
+      final fakeSearch = FakePlaceSearchRepository(
+        results: [
+          Place(
+            name: 'Amsterdam',
+            country: 'NL',
+            coordinate: const GeoCoordinate(lat: 52.370216, lon: 4.895168),
+          ),
+        ],
+      );
+      final clock = _MutableClock(now);
 
     await tester.pumpWidget(
       App(
@@ -116,11 +125,12 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await _pumpFor(tester, const Duration(seconds: 1));
 
-    final lowPowerSwitch = find.widgetWithText(SwitchListTile, LocaleKeys.settingsLowPower.tr);
-    if (lowPowerSwitch.evaluate().isNotEmpty) {
-      await tester.tap(lowPowerSwitch);
-      await _pumpFor(tester, const Duration(seconds: 1));
-    }
+      final lowPowerSwitch = find.widgetWithText(SwitchListTile, LocaleKeys.settingsLowPower.tr);
+      if (lowPowerSwitch.evaluate().isNotEmpty) {
+        await tester.tap(lowPowerSwitch);
+        await _pumpFor(tester, const Duration(seconds: 1));
+      }
+      print('frameMetrics=${FrameMonitor.metrics()}');
     },
     timeout: const Timeout(Duration(minutes: 30)),
   );
@@ -128,6 +138,13 @@ void main() {
   testWidgets(
     'Rate limit shows a clear error state without cache',
     (tester) async {
+      FrameMonitor.reset();
+      FrameMonitor.start();
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(480, 900);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     await prefs.setString('settings.locale', 'en');
@@ -174,6 +191,7 @@ void main() {
     AppRouter.router.go(AppRoutes.home);
     await _pumpFor(tester, const Duration(milliseconds: 800));
     await _pumpUntilFound(tester, find.text(LocaleKeys.weatherRateLimited.tr));
+      print('frameMetrics=${FrameMonitor.metrics()}');
     },
     timeout: const Timeout(Duration(minutes: 30)),
   );

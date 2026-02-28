@@ -1,4 +1,5 @@
 import 'package:claudy/core/i18n/locale_keys.dart';
+import 'package:claudy/core/theme/tokens.dart';
 import 'package:claudy/features/weather/domain/models/current_weather.dart';
 import 'package:claudy/features/weather/ui/widgets/weather_condition_icon.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,7 @@ class CurrentWeatherCard extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(Tokens.cornerRadius),
         gradient: LinearGradient(
           colors: [
             colorScheme.primary.withValues(alpha: 0.35),

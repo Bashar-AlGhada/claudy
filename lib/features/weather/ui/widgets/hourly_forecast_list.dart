@@ -1,5 +1,6 @@
 import 'package:claudy/features/weather/domain/models/hourly_weather.dart';
 import 'package:claudy/features/weather/ui/widgets/weather_condition_icon.dart';
+import 'package:claudy/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 
 class HourlyForecastList extends StatelessWidget {
@@ -12,10 +13,10 @@ class HourlyForecastList extends StatelessWidget {
     return SizedBox(
       height: 92,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: Tokens.space12),
         itemBuilder: (context, index) {
           final item = items[index];
           return _HourlyItem(item: item);
@@ -38,7 +39,7 @@ class _HourlyItem extends StatelessWidget {
     return Container(
       width: 72,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Tokens.cornerRadius),
         color: colorScheme.surface.withValues(alpha: 0.6),
       ),
       padding: const EdgeInsets.symmetric(vertical: 8),
