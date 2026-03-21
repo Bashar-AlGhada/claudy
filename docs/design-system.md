@@ -1,38 +1,22 @@
 # Design System (Material 3)
 
-## Design Tokens
+## Tokens in use
 
-Spacing
-- `Tokens.space2/4/8/12/16/24/32`
+- Spacing scale is defined in Tokens (2 to 32 spacing values).
+- Corner radius comes from a single token to keep cards and controls consistent.
+- Motion durations are short and shared across transitions (fast, medium, slow).
+- Theme colors come from Material 3 color schemes with overlays for text readability.
 
-Radii
-- `Tokens.cornerRadius`
+## Components currently relied on
 
-Motion
-- `Tokens.motionFast` (150ms)
-- `Tokens.motionMedium` (240ms)
-- `Tokens.motionSlow` (300ms)
-- `Tokens.easeOut`, `Tokens.easeInOut`
+- AppCard for consistent tappable surfaces.
+- AppEmptyState and AppErrorState for empty/error rendering.
+- AppSkeletonBox and AppSkeletonList for loading placeholders.
+- WeatherBackground for condition-aware visual treatment.
 
-Color
-- Theme uses Material 3 `ColorScheme` derived from preset seed colors.
-- Surfaces and overlays use `surface`, `surfaceVariant`, and alpha overlays to maintain contrast.
+## Practical usage rules
 
-## Reusable Components
-
-Core UI
-- `AppCard`: consistent shape and interaction surface for tappable containers.
-- `AppEmptyState`, `AppErrorState`: standardized empty/error states with optional actions.
-- `AppSkeletonBox`, `AppSkeletonList`: lightweight skeleton placeholders without extra dependencies.
-
-Weather UI
-- `WeatherBackground`: condition-driven gradient backgrounds with optional particle effects.
-
-## Usage Guidelines
-
-Interactive elements
-- Prefer `InkWell`/Material surfaces for ripple + keyboard/focus behavior.
-- Keep interaction timings between 150–300ms using `Tokens.motion*`.
-
-Loading states
-- Prefer skeletons for page-level loads and show cached-to-fresh transitions without jarring layout shifts.
+- Use Material surfaces with focus/ripple behavior for interactive content.
+- Keep animation timings consistent across screens.
+- Keep loading states layout-stable to avoid jumpy UI during refresh.
+- Always verify text contrast when weather backgrounds are active.

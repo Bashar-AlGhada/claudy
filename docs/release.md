@@ -2,19 +2,26 @@
 
 ## Android
 
-- Ensure required permissions exist in `android/app/src/main/AndroidManifest.xml`.
-- Build:
-  - `flutter build apk`
-  - `flutter build appbundle`
+- Confirm required permissions in android/app/src/main/AndroidManifest.xml.
+- Build artifacts:
+
+```bash
+flutter build apk
+flutter build appbundle
+```
 
 ## iOS
 
-- Ensure usage descriptions exist in `ios/Runner/Info.plist`.
-- Build:
-  - `flutter build ipa`
+- Confirm usage descriptions in ios/Runner/Info.plist.
+- Build artifact:
 
-## Notes
+```bash
+flutter build ipa
+```
 
-- Keep `OPENWEATHER_API_KEY` out of source control.
-- Prefer CI secrets / per-environment configuration.
+## Release Checklist
+
+- Keep OPENWEATHER_API_KEY out of source control.
+- Prefer CI-managed secrets per environment.
+- Verify diagnostics export does not include sensitive values.
 

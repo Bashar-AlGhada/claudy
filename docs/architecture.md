@@ -1,36 +1,32 @@
 # Architecture
 
-## Stack
+## Stack used in this repo
 
-- State management: Riverpod
+- State: Riverpod
 - Navigation: go_router
-- Networking: Dio
-- Localization: GetX + `LocaleKeys` + JSON assets
-- Caching: Hive (JSON snapshots, schema versioned)
+- HTTP: Dio
+- Localization: GetX translations with static LocaleKeys
+- Cache: Hive-backed weather snapshot storage
 
-## Module Boundaries
+## Folder responsibilities
 
-- `core/`
-  - Cross-cutting concerns: configuration, routing, time, errors/results, i18n, location, notifications, background scheduling.
-- `features/weather/`
-  - `domain/`: entities and repository interface
-  - `data/`: provider adapters, repository implementation, cache implementation
-  - `ui/`: screens and widgets
-- `features/search/`
-  - OpenWeather geocoding search + UI to set manual coordinate
-- `features/map/`
-  - Swappable map provider interface with a baseline canvas implementation
-- `features/settings/`
-  - Theme, language, location mode, background refresh, and notifications controls
+- core/: shared infrastructure (errors, logging, time, i18n, diagnostics, notifications)
+- features/weather/: weather domain models, provider adapters, cache/repository logic, weather UI
+- features/search/: place search and manual location flow
+- features/map/: map UI and map-provider abstraction points
+- features/settings/: language, theme, diagnostics export, and feature toggles
 
-## Data Flow
+## Weather read path
 
-- UI reads location from `locationProvider`
-- UI reads weather from `weatherReadingProvider`
-- `weatherReadingProvider` calls `WeatherRepository.getWeather`
-- Repository:
-  - Returns fresh cache when available
-  - Otherwise fetches network via `WeatherProvider`
-  - Writes snapshot to cache
-  - On network failure, returns stale cached snapshot when possible
+1. UI asks weatherReadingProvider for the selected coordinate.
+2. Provider calls WeatherRepository.
+3. Repository checks cache freshness.
+4. If cache is fresh, it returns immediately.
+5. If cache is stale or missing, it fetches network data, writes cache, and returns fresh data.
+6. If network fails and cache exists, stale data is returned with stale state.
+
+## Notes
+
+- Keep provider adapters isolated from UI and domain models.
+- Keep fallback behavior deterministic and covered by tests.
 

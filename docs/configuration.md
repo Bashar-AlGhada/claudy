@@ -1,24 +1,31 @@
 # Configuration
 
-## Weather Provider
+## Runtime Flags
 
-Weather providers are selected via `--dart-define`.
+Claudy reads provider settings through --dart-define values at launch.
 
-- `WEATHER_PROVIDER`
-  - Default: `openweather`
-  - Used by `activeWeatherProvider`
+- WEATHER_PROVIDER
+  - Default: openweather
+  - Current supported value in this repo: openweather
 
-## OpenWeather API Key
+- OPENWEATHER_API_KEY
+  - Required for weather reads and place search
 
-- `OPENWEATHER_API_KEY`
-  - Required for weather and geocoding search
+## Example
 
-Example:
-
-`flutter run --dart-define=OPENWEATHER_API_KEY=YOUR_KEY`
+```bash
+flutter run \
+  --dart-define=WEATHER_PROVIDER=openweather \
+  --dart-define=OPENWEATHER_API_KEY=YOUR_KEY
+```
 
 ## Localization
 
-- Assets are loaded from `assets/i18n/*.json`.
-- All UI strings are referenced through `LocaleKeys`.
+- Translation files are in assets/i18n/*.json.
+- UI text is referenced through LocaleKeys.
+
+## Security Notes
+
+- Do not commit OPENWEATHER_API_KEY values to source control.
+- Use environment-based secrets in CI pipelines.
 
