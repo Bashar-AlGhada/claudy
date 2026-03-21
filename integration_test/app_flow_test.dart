@@ -18,7 +18,6 @@ import 'package:claudy/features/weather/data/cache/weather_cache_provider.dart';
 import 'package:claudy/features/weather/data/weather_provider_selector.dart';
 import 'package:claudy/features/weather/domain/models/geo_coordinate.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
@@ -27,7 +26,6 @@ import 'package:geolocator/geolocator.dart';
 
 import 'support/fakes.dart';
 
-@Timeout(Duration(minutes: 45))
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 

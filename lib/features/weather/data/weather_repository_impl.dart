@@ -4,7 +4,6 @@ import 'package:claudy/core/errors/app_failure.dart';
 import 'package:claudy/core/errors/app_exception.dart';
 import 'package:claudy/core/http/interceptors/rate_limit_interceptor.dart';
 import 'package:claudy/core/result/app_result.dart';
-import 'package:claudy/features/weather/data/cache/weather_cache.dart';
 import 'package:claudy/features/weather/data/cache/weather_cache_key.dart';
 import 'package:claudy/features/weather/data/cache/weather_cache_policy.dart';
 import 'package:claudy/features/weather/data/cache/weather_cache_provider.dart';
