@@ -1,7 +1,14 @@
 name: Windows Build
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -31,3 +38,4 @@ jobs:
         with:
           name: windows-x64-release-${{ matrix.os }}
           path: build/windows/x64/runner/Release/
+          retention-days: 14

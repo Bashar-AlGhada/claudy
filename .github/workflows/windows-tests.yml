@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: windows-tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     strategy:
@@ -26,8 +30,24 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      - name: Analyze
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path .ci-logs -Force | Out-Null
+          flutter analyze *>&1 | Tee-Object -FilePath .ci-logs/analyze.log
+
       - name: Unit and widget tests
-        run: flutter test
+        shell: pwsh
+        run: flutter test *>&1 | Tee-Object -FilePath .ci-logs/unit-widget-tests.log
 
       - name: Integration tests (Windows)
-        run: flutter test -d windows integration_test -- --timeout=45m
+        shell: pwsh
+        run: flutter test -d windows integration_test -- --timeout=45m *>&1 | Tee-Object -FilePath .ci-logs/integration-tests.log
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-logs-${{ matrix.os }}
+          path: .ci-logs/
+          retention-days: 14

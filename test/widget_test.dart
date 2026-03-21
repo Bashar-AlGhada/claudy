@@ -10,7 +10,6 @@ import 'package:claudy/features/weather/domain/models/weather_snapshot.dart';
 import 'package:claudy/features/weather/providers/weather_reading_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -51,7 +50,7 @@ void main() {
     await tester.pumpWidget(
       App(
         overrides: [
-          weatherReadingProvider.overrideWith((ref) async => _reading()),
+          weatherReadingProvider.overrideWith(_TestWeatherReadingNotifier.new),
         ],
       ),
     );
@@ -82,7 +81,7 @@ void main() {
     await tester.pumpWidget(
       App(
         overrides: [
-          weatherReadingProvider.overrideWith((ref) async => _reading()),
+          weatherReadingProvider.overrideWith(_TestWeatherReadingNotifier.new),
         ],
       ),
     );
@@ -121,7 +120,7 @@ void main() {
     await tester.pumpWidget(
       App(
         overrides: [
-          weatherReadingProvider.overrideWith((ref) async => _reading()),
+          weatherReadingProvider.overrideWith(_TestWeatherReadingNotifier.new),
         ],
       ),
     );
@@ -170,4 +169,9 @@ WeatherReading _reading() {
     isStale: false,
     source: WeatherDataSource.cache,
   );
+}
+
+class _TestWeatherReadingNotifier extends WeatherReadingNotifier {
+  @override
+  Future<WeatherReading?> build() async => _reading();
 }

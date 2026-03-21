@@ -22,7 +22,7 @@ void main() {
     await tester.pumpWidget(
       App(
         overrides: [
-          weatherReadingProvider.overrideWith((ref) async => _reading()),
+          weatherReadingProvider.overrideWith(_TestWeatherReadingNotifier.new),
         ],
       ),
     );
@@ -42,7 +42,7 @@ void main() {
     await tester.pumpWidget(
       App(
         overrides: [
-          weatherReadingProvider.overrideWith((ref) async => _reading()),
+          weatherReadingProvider.overrideWith(_TestWeatherReadingNotifier.new),
         ],
       ),
     );
@@ -87,5 +87,10 @@ WeatherReading _reading() {
     isStale: false,
     source: WeatherDataSource.cache,
   );
+}
+
+class _TestWeatherReadingNotifier extends WeatherReadingNotifier {
+  @override
+  Future<WeatherReading?> build() async => _reading();
 }
 
