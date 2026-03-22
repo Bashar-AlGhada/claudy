@@ -7,7 +7,7 @@ class DiagnosticsService {
     final arch = _detectArchitecture(env);
     final osVersion = Platform.operatingSystemVersion;
     final locale = Platform.localeName;
-    final displayScale = env['GDK_SCALE'] ?? env['DISPLAY_SCALE'] ?? null;
+    final displayScale = env['GDK_SCALE'] ?? env['DISPLAY_SCALE'];
 
     return {
       'app': {

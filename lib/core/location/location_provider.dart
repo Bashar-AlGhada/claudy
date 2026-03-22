@@ -84,7 +84,7 @@ class LocationNotifier extends AsyncNotifier<LocationState> {
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       state = AsyncData(
-        (state.valueOrNull ??
+        (state.asData?.value ??
                 const LocationState(
                   mode: LocationMode.manual,
                   coordinate: null,
@@ -100,11 +100,12 @@ class LocationNotifier extends AsyncNotifier<LocationState> {
 
   Future<Position?> _safeGetPosition(LocationClient client, LocationMode mode) async {
     try {
-      return await client.getCurrentPosition(
-        desiredAccuracy: mode == LocationMode.coarse
-            ? LocationAccuracy.low
-            : LocationAccuracy.high,
+      final settings = LocationSettings(
+        accuracy: mode == LocationMode.coarse ? LocationAccuracy.low : LocationAccuracy.high,
         timeLimit: const Duration(seconds: 8),
+      );
+      return await client.getCurrentPosition(
+        settings: settings,
       );
     } catch (_) {
       return null;

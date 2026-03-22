@@ -16,7 +16,7 @@ class AppSkeletonBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final color = scheme.surfaceVariant.withValues(alpha: 0.55);
+    final color = scheme.surfaceContainerHighest.withValues(alpha: 0.55);
     return FractionallySizedBox(
       widthFactor: widthFactor,
       child: Container(
@@ -77,8 +77,8 @@ class AppSkeletonListTiles extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       itemCount: count,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (_, __) => const AppSkeletonListTile(),
+      separatorBuilder: (_, index) => const Divider(height: 1),
+      itemBuilder: (_, index) => const AppSkeletonListTile(),
     );
   }
 }

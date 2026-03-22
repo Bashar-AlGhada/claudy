@@ -41,7 +41,7 @@ class _MapPageState extends ConsumerState<MapPage> {
   Future<void> _selectCoordinate(GeoCoordinate coordinate) async {
     setState(() {
       _picked = coordinate;
-      _lastReading = _reading?.valueOrNull ?? _lastReading;
+      _lastReading = _reading?.asData?.value ?? _lastReading;
       _reading = const AsyncLoading();
     });
 
@@ -52,11 +52,8 @@ class _MapPageState extends ConsumerState<MapPage> {
     final result = await repo.getWeather(coordinate, hours: 12, days: 5);
     if (!mounted) return;
     setState(() {
-      _reading = result.fold(
-        (failure) => AsyncError(failure, StackTrace.current),
-        (reading) => AsyncData(reading),
-      );
-      final next = _reading?.valueOrNull;
+      _reading = result.fold((failure) => AsyncError(failure, StackTrace.current), (reading) => AsyncData(reading));
+      final next = _reading?.asData?.value;
       if (next != null) _lastReading = next;
     });
   }
@@ -74,22 +71,13 @@ class _MapPageState extends ConsumerState<MapPage> {
             if (!wide) {
               return Column(
                 children: [
-                  AppConstrained(
-                    padding: const EdgeInsets.all(Tokens.space16),
-                    child: Text(LocaleKeys.mapTapHint.tr),
-                  ),
+                  AppConstrained(padding: const EdgeInsets.all(Tokens.space16), child: Text(LocaleKeys.mapTapHint.tr)),
                   Expanded(
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(Tokens.cornerRadius),
-                      ),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(Tokens.cornerRadius)),
                       child: Semantics(
                         label: LocaleKeys.mapTapHint.tr,
-                        child: provider.build(
-                          overlays: _overlays,
-                          marker: _picked,
-                          onTap: _selectCoordinate,
-                        ),
+                        child: provider.build(overlays: _overlays, marker: _picked, onTap: _selectCoordinate),
                       ),
                     ),
                   ),
@@ -101,10 +89,7 @@ class _MapPageState extends ConsumerState<MapPage> {
                         ? const SizedBox.shrink()
                         : AppConstrained(
                             key: const ValueKey('map_weather_panel'),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: Tokens.space16,
-                              vertical: Tokens.space12,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: Tokens.space16, vertical: Tokens.space12),
                             child: _WeatherPanel(
                               reading: _reading!,
                               last: _lastReading,
@@ -136,11 +121,7 @@ class _MapPageState extends ConsumerState<MapPage> {
                       borderRadius: BorderRadius.circular(Tokens.cornerRadius),
                       child: Semantics(
                         label: LocaleKeys.mapTapHint.tr,
-                        child: provider.build(
-                          overlays: _overlays,
-                          marker: _picked,
-                          onTap: _selectCoordinate,
-                        ),
+                        child: provider.build(overlays: _overlays, marker: _picked, onTap: _selectCoordinate),
                       ),
                     ),
                   ),
@@ -151,17 +132,10 @@ class _MapPageState extends ConsumerState<MapPage> {
                   child: ListView(
                     padding: const EdgeInsets.all(Tokens.space16),
                     children: [
-                      Text(
-                        LocaleKeys.mapTapHint.tr,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      Text(LocaleKeys.mapTapHint.tr, style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: Tokens.space16),
                       if (_reading != null)
-                        _WeatherPanel(
-                          reading: _reading!,
-                          last: _lastReading,
-                          onRetry: _picked == null ? null : () => _selectCoordinate(_picked!),
-                        )
+                        _WeatherPanel(reading: _reading!, last: _lastReading, onRetry: _picked == null ? null : () => _selectCoordinate(_picked!))
                       else
                         const SizedBox.shrink(),
                       const SizedBox(height: Tokens.space16),
@@ -186,11 +160,7 @@ class _MapPageState extends ConsumerState<MapPage> {
 }
 
 class _WeatherPanel extends StatelessWidget {
-  const _WeatherPanel({
-    required this.reading,
-    required this.last,
-    required this.onRetry,
-  });
+  const _WeatherPanel({required this.reading, required this.last, required this.onRetry});
 
   final AsyncValue<WeatherReading> reading;
   final WeatherReading? last;
@@ -221,11 +191,7 @@ class _WeatherPanel extends StatelessWidget {
         providerName: value.snapshot.providerName,
         fetchedAt: value.snapshot.fetchedAt,
       ),
-      error: (_, __) => AppErrorState(
-        message: LocaleKeys.mapWeatherError.tr,
-        retryLabel: LocaleKeys.weatherRetry.tr,
-        onRetry: onRetry,
-      ),
+      error: (_, stackTrace) => AppErrorState(message: LocaleKeys.mapWeatherError.tr, retryLabel: LocaleKeys.weatherRetry.tr, onRetry: onRetry),
       loading: () => const AppSkeletonBox(height: 140, radius: Tokens.cornerRadius),
     );
   }
@@ -254,21 +220,9 @@ class _OverlayChips extends StatelessWidget {
       spacing: Tokens.space12,
       runSpacing: Tokens.space8,
       children: [
-        FilterChip(
-          label: Text(LocaleKeys.mapOverlayRadar.tr),
-          selected: radar,
-          onSelected: onRadar,
-        ),
-        FilterChip(
-          label: Text(LocaleKeys.mapOverlayHeatmap.tr),
-          selected: heatmap,
-          onSelected: onHeatmap,
-        ),
-        FilterChip(
-          label: Text(LocaleKeys.mapOverlayWind.tr),
-          selected: wind,
-          onSelected: onWind,
-        ),
+        FilterChip(label: Text(LocaleKeys.mapOverlayRadar.tr), selected: radar, onSelected: onRadar),
+        FilterChip(label: Text(LocaleKeys.mapOverlayHeatmap.tr), selected: heatmap, onSelected: onHeatmap),
+        FilterChip(label: Text(LocaleKeys.mapOverlayWind.tr), selected: wind, onSelected: onWind),
       ],
     );
   }

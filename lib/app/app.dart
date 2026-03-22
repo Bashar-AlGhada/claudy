@@ -10,7 +10,7 @@ import 'package:get/get.dart';
 class App extends StatelessWidget {
   const App({super.key, this.overrides = const []});
 
-  final List<Override> overrides;
+  final dynamic overrides;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,7 @@ class _AppView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen<AsyncValue<Locale>>(localeProvider, (_, next) {
-      final value = next.valueOrNull;
+      final value = next.asData?.value;
       if (value == null) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Get.updateLocale(value);
@@ -35,12 +35,10 @@ class _AppView extends ConsumerWidget {
     final theme = ref.watch(themeProvider);
 
     if (locale.isLoading || theme.isLoading) {
-      return const GetMaterialApp(
-        home: SizedBox.shrink(),
-      );
+      return const GetMaterialApp(home: SizedBox.shrink());
     }
 
-    final selectedLocale = locale.valueOrNull ?? const Locale('en');
+    final selectedLocale = locale.asData?.value ?? const Locale('en');
 
     return GetMaterialApp.router(
       title: LocaleKeys.appTitle.tr,
@@ -48,7 +46,7 @@ class _AppView extends ConsumerWidget {
       locale: selectedLocale,
       fallbackLocale: const Locale('en'),
       translations: AppTranslations(),
-      theme: theme.valueOrNull?.materialThemeData,
+      theme: theme.asData?.value.materialThemeData,
       routerDelegate: AppRouter.router.routerDelegate,
       routeInformationParser: AppRouter.router.routeInformationParser,
       routeInformationProvider: AppRouter.router.routeInformationProvider,

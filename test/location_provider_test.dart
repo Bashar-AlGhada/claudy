@@ -16,11 +16,7 @@ void main() {
     });
 
     final client = _FakeLocationClient();
-    final container = ProviderContainer(
-      overrides: [
-        locationClientProvider.overrideWithValue(client),
-      ],
-    );
+    final container = ProviderContainer(overrides: [locationClientProvider.overrideWithValue(client)]);
     addTearDown(container.dispose);
 
     final state = await container.read(locationProvider.future);
@@ -39,15 +35,8 @@ void main() {
       'settings.location.manualLon': 20.0,
     });
 
-    final client = _FakeLocationClient(
-      serviceEnabled: true,
-      permission: LocationPermission.denied,
-    );
-    final container = ProviderContainer(
-      overrides: [
-        locationClientProvider.overrideWithValue(client),
-      ],
-    );
+    final client = _FakeLocationClient(serviceEnabled: true, permission: LocationPermission.denied);
+    final container = ProviderContainer(overrides: [locationClientProvider.overrideWithValue(client)]);
     addTearDown(container.dispose);
 
     final state = await container.read(locationProvider.future);
@@ -64,37 +53,25 @@ void main() {
       'settings.location.manualLon': 20.0,
     });
 
-    final client = _FakeLocationClient(
-      serviceEnabled: true,
-      permission: LocationPermission.whileInUse,
-      throwOnPosition: true,
-    );
-    final container = ProviderContainer(
-      overrides: [
-        locationClientProvider.overrideWithValue(client),
-      ],
-    );
+    final client = _FakeLocationClient(serviceEnabled: true, permission: LocationPermission.whileInUse, throwOnPosition: true);
+    final container = ProviderContainer(overrides: [locationClientProvider.overrideWithValue(client)]);
     addTearDown(container.dispose);
 
     final state = await container.read(locationProvider.future);
     expect(state.mode, LocationMode.coarse);
-    expect(client.lastAccuracy, LocationAccuracy.low);
+    expect(client.lastSettings?.accuracy, LocationAccuracy.low);
   });
 }
 
 class _FakeLocationClient implements LocationClient {
-  _FakeLocationClient({
-    this.serviceEnabled,
-    this.permission,
-    this.throwOnPosition = false,
-  });
+  _FakeLocationClient({this.serviceEnabled, this.permission, this.throwOnPosition = false});
 
   int calls = 0;
   final bool? serviceEnabled;
   final LocationPermission? permission;
   final bool throwOnPosition;
 
-  LocationAccuracy? lastAccuracy;
+  LocationSettings? lastSettings;
 
   @override
   Future<bool> isLocationServiceEnabled() async {
@@ -109,12 +86,9 @@ class _FakeLocationClient implements LocationClient {
   }
 
   @override
-  Future<Position> getCurrentPosition({
-    required LocationAccuracy desiredAccuracy,
-    required Duration timeLimit,
-  }) async {
+  Future<Position> getCurrentPosition({required LocationSettings settings}) async {
     calls++;
-    lastAccuracy = desiredAccuracy;
+    lastSettings = settings;
     if (throwOnPosition) throw Exception('no position');
     throw UnimplementedError();
   }
@@ -125,4 +99,3 @@ class _FakeLocationClient implements LocationClient {
     return permission ?? LocationPermission.denied;
   }
 }
-

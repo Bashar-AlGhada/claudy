@@ -12,7 +12,7 @@ class ThemeEditorPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider).valueOrNull;
+    final theme = ref.watch(themeProvider).asData?.value;
     if (theme == null) {
       return const Scaffold(body: SizedBox.shrink());
     }
@@ -25,17 +25,23 @@ class ThemeEditorPage extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(vertical: Tokens.space16),
             children: [
-              for (final preset in ThemePresets.all)
-                RadioListTile<ThemePresetId>(
-                  value: preset.id,
-                  groupValue: theme.presetId,
-                  onChanged: (id) {
-                    if (id == null) return;
-                    ref.read(themeProvider.notifier).setPreset(id);
-                  },
-                  title: Text(preset.labelKey.tr),
-                  secondary: _ThemeSwatch(color: preset.seed),
+              RadioGroup<ThemePresetId>(
+                groupValue: theme.presetId,
+                onChanged: (id) {
+                  if (id == null) return;
+                  ref.read(themeProvider.notifier).setPreset(id);
+                },
+                child: Column(
+                  children: [
+                    for (final preset in ThemePresets.all)
+                      RadioListTile<ThemePresetId>(
+                        value: preset.id,
+                        title: Text(preset.labelKey.tr),
+                        secondary: _ThemeSwatch(color: preset.seed),
+                      ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),
@@ -53,10 +59,7 @@ class _ThemeSwatch extends StatelessWidget {
     return Container(
       width: 28,
       height: 28,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(Tokens.space8),
-      ),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(Tokens.space8)),
     );
   }
 }

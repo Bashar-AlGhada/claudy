@@ -14,11 +14,7 @@ import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 
 class FakeLocationClient implements LocationClient {
-  FakeLocationClient({
-    required this.serviceEnabled,
-    required this.permission,
-    required this.position,
-  });
+  FakeLocationClient({required this.serviceEnabled, required this.permission, required this.position});
 
   bool serviceEnabled;
   LocationPermission permission;
@@ -34,12 +30,8 @@ class FakeLocationClient implements LocationClient {
   Future<LocationPermission> requestPermission() async => permission;
 
   @override
-  Future<Position> getCurrentPosition({
-    required LocationAccuracy desiredAccuracy,
-    required Duration timeLimit,
-  }) async {
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+  Future<Position> getCurrentPosition({required LocationSettings settings}) async {
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
       throw Exception('Permission denied');
     }
     return position;
@@ -81,21 +73,11 @@ class FakeWeatherProvider implements WeatherProvider {
   @override
   Future<CurrentWeather> getCurrent(GeoCoordinate coordinate) async {
     _maybeThrow();
-    return CurrentWeather(
-      temperatureC: 21,
-      feelsLikeC: 20,
-      humidityPercent: 55,
-      windSpeedMps: 3.2,
-      conditionCode: 800,
-      observedAt: now,
-    );
+    return CurrentWeather(temperatureC: 21, feelsLikeC: 20, humidityPercent: 55, windSpeedMps: 3.2, conditionCode: 800, observedAt: now);
   }
 
   @override
-  Future<List<HourlyWeather>> getHourly(
-    GeoCoordinate coordinate, {
-    required int hours,
-  }) async {
+  Future<List<HourlyWeather>> getHourly(GeoCoordinate coordinate, {required int hours}) async {
     _maybeThrow();
     return List.generate(hours, (i) {
       return HourlyWeather(
@@ -108,19 +90,11 @@ class FakeWeatherProvider implements WeatherProvider {
   }
 
   @override
-  Future<List<DailyWeather>> getDaily(
-    GeoCoordinate coordinate, {
-    required int days,
-  }) async {
+  Future<List<DailyWeather>> getDaily(GeoCoordinate coordinate, {required int days}) async {
     _maybeThrow();
     return List.generate(days, (i) {
       final date = DateTime(now.year, now.month, now.day).add(Duration(days: i));
-      return DailyWeather(
-        date: date,
-        minTemperatureC: 15,
-        maxTemperatureC: 24,
-        conditionCode: 800,
-      );
+      return DailyWeather(date: date, minTemperatureC: 15, maxTemperatureC: 24, conditionCode: 800);
     });
   }
 

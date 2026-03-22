@@ -51,12 +51,7 @@ void main() {
 
 class _FakeWeatherRepository implements WeatherRepository {
   @override
-  Future<AppResult<WeatherReading>> getWeather(
-    GeoCoordinate coordinate, {
-    required int hours,
-    required int days,
-    bool forceRefresh = false,
-  }) async {
+  Future<AppResult<WeatherReading>> getWeather(GeoCoordinate coordinate, {required int hours, required int days, bool forceRefresh = false}) async {
     final now = DateTime(2026, 1, 1, 12);
     return Success(
       WeatherReading(
@@ -64,30 +59,9 @@ class _FakeWeatherRepository implements WeatherRepository {
           coordinate: coordinate,
           providerName: 'Test',
           fetchedAt: now,
-          current: CurrentWeather(
-            temperatureC: 10,
-            feelsLikeC: 9,
-            humidityPercent: 50,
-            windSpeedMps: 1.2,
-            conditionCode: 800,
-            observedAt: now,
-          ),
-          hourly: [
-            HourlyWeather(
-              time: now,
-              temperatureC: 10,
-              precipProbabilityPercent: 0,
-              conditionCode: 800,
-            ),
-          ],
-          daily: [
-            DailyWeather(
-              date: DateTime(now.year, now.month, now.day),
-              minTemperatureC: 8,
-              maxTemperatureC: 12,
-              conditionCode: 800,
-            ),
-          ],
+          current: CurrentWeather(temperatureC: 10, feelsLikeC: 9, humidityPercent: 50, windSpeedMps: 1.2, conditionCode: 800, observedAt: now),
+          hourly: [HourlyWeather(time: now, temperatureC: 10, precipProbabilityPercent: 0, conditionCode: 800)],
+          daily: [DailyWeather(date: DateTime(now.year, now.month, now.day), minTemperatureC: 8, maxTemperatureC: 12, conditionCode: 800)],
         ),
         isStale: false,
         source: WeatherDataSource.network,
@@ -101,10 +75,7 @@ class _NeverLocationClient implements LocationClient {
   Future<LocationPermission> checkPermission() async => LocationPermission.denied;
 
   @override
-  Future<Position> getCurrentPosition({
-    required LocationAccuracy desiredAccuracy,
-    required Duration timeLimit,
-  }) {
+  Future<Position> getCurrentPosition({required LocationSettings settings}) {
     throw UnimplementedError();
   }
 

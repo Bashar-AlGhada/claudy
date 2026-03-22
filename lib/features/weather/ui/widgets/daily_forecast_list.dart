@@ -15,7 +15,7 @@ class DailyForecastList extends StatelessWidget {
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
       itemCount: items.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final item = items[index];
         return _DailyRow(item: item);

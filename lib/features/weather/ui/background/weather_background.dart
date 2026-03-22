@@ -37,49 +37,33 @@ class _WeatherBackgroundState extends ConsumerState<WeatherBackground> with Sing
     return reading.when(
       data: (value) {
         if (value == null) {
-          return Container(
-            color: Theme.of(context).colorScheme.surface,
-            child: widget.child,
-          );
+          return Container(color: Theme.of(context).colorScheme.surface, child: widget.child);
         }
         final visual = mapOpenWeatherCode(value.snapshot.current.conditionCode);
         if (widget.lowPower) {
-          return Container(
-            color: Theme.of(context).colorScheme.surface,
-            child: widget.child,
-          );
+          return Container(color: Theme.of(context).colorScheme.surface, child: widget.child);
         }
         final colors = _gradientFor(visual, Theme.of(context).colorScheme);
         return AnimatedContainer(
           duration: Tokens.motionSlow,
           curve: Tokens.easeOut,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: colors,
-            ),
+            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
           ),
           child: Stack(
             fit: StackFit.expand,
             children: [
               AnimatedBuilder(
                 animation: _controller,
-                builder: (context, _) => CustomPaint(
-                  painter: _ParticlePainter(_controller.value, visual),
-                ),
+                builder: (context, child) => CustomPaint(painter: _ParticlePainter(_controller.value, visual)),
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.08),
-                ),
-              ),
+              Container(decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.08))),
               widget.child,
             ],
           ),
         );
       },
-      error: (_, __) {
+      error: (_, stackTrace) {
         return Container(color: Theme.of(context).colorScheme.surface, child: widget.child);
       },
       loading: () {
@@ -104,7 +88,7 @@ class _WeatherBackgroundState extends ConsumerState<WeatherBackground> with Sing
       case WeatherVisual.clear:
         return [scheme.primary.withValues(alpha: 0.12), scheme.surface];
       case WeatherVisual.clouds:
-        return [scheme.surfaceVariant.withValues(alpha: 0.18), scheme.surface];
+        return [scheme.surfaceContainerHighest.withValues(alpha: 0.18), scheme.surface];
       case WeatherVisual.rain:
         return [Colors.blueGrey.shade700.withValues(alpha: 0.22), scheme.surface];
       case WeatherVisual.snow:
@@ -151,7 +135,7 @@ class _ParticlePainter extends CustomPainter {
         case WeatherVisual.thunder:
           canvas.drawLine(Offset(x, y), Offset(x + 6, y + 6), paint);
         case WeatherVisual.clear:
-          // no particles
+        // no particles
       }
     }
   }

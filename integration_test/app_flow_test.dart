@@ -128,7 +128,7 @@ void main() {
         await tester.tap(lowPowerSwitch);
         await _pumpFor(tester, const Duration(seconds: 1));
       }
-      print('frameMetrics=${FrameMonitor.metrics()}');
+      debugPrint('frameMetrics=${FrameMonitor.metrics()}');
     },
     timeout: const Timeout(Duration(minutes: 30)),
   );
@@ -189,7 +189,7 @@ void main() {
     AppRouter.router.go(AppRoutes.home);
     await _pumpFor(tester, const Duration(milliseconds: 800));
     await _pumpUntilFound(tester, find.text(LocaleKeys.weatherRateLimited.tr));
-      print('frameMetrics=${FrameMonitor.metrics()}');
+      debugPrint('frameMetrics=${FrameMonitor.metrics()}');
     },
     timeout: const Timeout(Duration(minutes: 30)),
   );

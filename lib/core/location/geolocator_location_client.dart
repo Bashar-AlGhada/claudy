@@ -12,14 +12,7 @@ class GeolocatorLocationClient implements LocationClient {
   Future<LocationPermission> requestPermission() => Geolocator.requestPermission();
 
   @override
-  Future<Position> getCurrentPosition({
-    required LocationAccuracy desiredAccuracy,
-    required Duration timeLimit,
-  }) {
-    return Geolocator.getCurrentPosition(
-      desiredAccuracy: desiredAccuracy,
-      timeLimit: timeLimit,
-    );
+  Future<Position> getCurrentPosition({required LocationSettings settings}) {
+    return Geolocator.getCurrentPosition(locationSettings: settings);
   }
 }
-

@@ -26,6 +26,6 @@ void main() {
 
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('settings.themePreset');
-    expect(saved, nextPreset!.name);
+    expect(saved, nextPreset.name);
   });
 }

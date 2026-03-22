@@ -46,11 +46,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       setState(() => _results = const AsyncLoading());
       final result = await repo.search(query);
       setState(() {
-        _results = result.fold(
-          (failure) => AsyncError(failure, StackTrace.current),
-          (places) => AsyncData(places),
-        );
-        final next = _results.valueOrNull;
+        _results = result.fold((failure) => AsyncError(failure, StackTrace.current), (places) => AsyncData(places));
+        final next = _results.asData?.value;
         if (next != null) _lastPlaces = next;
       });
     });
@@ -71,10 +68,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   controller: _controller,
                   onChanged: _onQueryChanged,
                   textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: LocaleKeys.searchHint.tr,
-                    border: const OutlineInputBorder(),
-                  ),
+                  decoration: InputDecoration(hintText: LocaleKeys.searchHint.tr, border: const OutlineInputBorder()),
                 ),
               ),
               Expanded(
@@ -98,12 +92,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 }
 
 class _SearchResults extends StatelessWidget {
-  const _SearchResults({
-    required this.results,
-    required this.lastPlaces,
-    required this.query,
-    required this.onPick,
-  });
+  const _SearchResults({required this.results, required this.lastPlaces, required this.query, required this.onPick});
 
   final AsyncValue<List<Place>> results;
   final List<Place> lastPlaces;
@@ -138,15 +127,10 @@ class _SearchResults extends StatelessWidget {
     return ListView.separated(
       key: const PageStorageKey('search_results_list'),
       itemCount: places.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final place = places[index];
-        return ListTile(
-          title: Text(place.name),
-          subtitle: Text(place.country),
-          trailing: Text(LocaleKeys.searchPick.tr),
-          onTap: () => onPick(place),
-        );
+        return ListTile(title: Text(place.name), subtitle: Text(place.country), trailing: Text(LocaleKeys.searchPick.tr), onTap: () => onPick(place));
       },
     );
   }

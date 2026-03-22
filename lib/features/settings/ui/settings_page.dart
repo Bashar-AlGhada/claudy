@@ -22,11 +22,11 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final locale = ref.watch(localeProvider).valueOrNull ?? const Locale('en');
-    final theme = ref.watch(themeProvider).valueOrNull;
-    final location = ref.watch(locationProvider).valueOrNull;
+    final locale = ref.watch(localeProvider).asData?.value ?? const Locale('en');
+    final theme = ref.watch(themeProvider).asData?.value;
+    final location = ref.watch(locationProvider).asData?.value;
     final locationMode = location?.mode ?? LocationMode.precise;
-    final notificationPrefs = ref.watch(notificationPreferencesProvider).valueOrNull;
+    final notificationPrefs = ref.watch(notificationPreferencesProvider).asData?.value;
 
     return Scaffold(
       appBar: AppBar(title: Text(LocaleKeys.navSettings.tr)),

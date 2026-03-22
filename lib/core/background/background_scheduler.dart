@@ -9,7 +9,7 @@ class BackgroundScheduler {
 
   static Future<void> initialize() async {
     if (kIsWeb) return;
-    await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    await Workmanager().initialize(callbackDispatcher);
   }
 
   static Future<void> scheduleRefresh({required Duration frequency}) async {

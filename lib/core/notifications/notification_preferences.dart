@@ -4,12 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum WeatherAlertType { rainSoon, extremeHeat }
 
 class NotificationPreferences {
-  const NotificationPreferences({
-    required this.enabled,
-    required this.rainSoon,
-    required this.extremeHeat,
-    required this.lastSentEpochMsByType,
-  });
+  const NotificationPreferences({required this.enabled, required this.rainSoon, required this.extremeHeat, required this.lastSentEpochMsByType});
 
   final bool enabled;
   final bool rainSoon;
@@ -25,8 +20,7 @@ class NotificationPreferences {
   }
 }
 
-final notificationPreferencesProvider =
-    AsyncNotifierProvider<NotificationPreferencesNotifier, NotificationPreferences>(
+final notificationPreferencesProvider = AsyncNotifierProvider<NotificationPreferencesNotifier, NotificationPreferences>(
   NotificationPreferencesNotifier.new,
 );
 
@@ -49,10 +43,7 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
       enabled: enabled,
       rainSoon: rainSoon,
       extremeHeat: extremeHeat,
-      lastSentEpochMsByType: {
-        if (lastRainSoon != null) WeatherAlertType.rainSoon: lastRainSoon,
-        if (lastExtremeHeat != null) WeatherAlertType.extremeHeat: lastExtremeHeat,
-      },
+      lastSentEpochMsByType: {WeatherAlertType.rainSoon: ?lastRainSoon, WeatherAlertType.extremeHeat: ?lastExtremeHeat},
     );
   }
 
@@ -88,4 +79,3 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
     state = AsyncData(await build());
   }
 }
-

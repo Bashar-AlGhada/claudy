@@ -18,7 +18,7 @@ class LocalNotificationService implements NotificationService {
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings();
     const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
-    await _plugin.initialize(settings);
+    await _plugin.initialize(settings: settings);
   }
 
   @override
@@ -58,6 +58,11 @@ class LocalNotificationService implements NotificationService {
     const iosDetails = DarwinNotificationDetails();
     final details = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
-    await _plugin.show(notification.id, notification.title, notification.body, details);
+    await _plugin.show(
+      id: notification.id,
+      title: notification.title,
+      body: notification.body,
+      notificationDetails: details,
+    );
   }
 }

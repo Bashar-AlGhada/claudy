@@ -10,10 +10,7 @@ import 'package:claudy/features/weather/data/weather_repository_impl.dart';
 import 'package:claudy/features/weather/domain/models/weather_reading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final weatherReadingProvider =
-    AsyncNotifierProvider<WeatherReadingNotifier, WeatherReading?>(
-  WeatherReadingNotifier.new,
-);
+final weatherReadingProvider = AsyncNotifierProvider<WeatherReadingNotifier, WeatherReading?>(WeatherReadingNotifier.new);
 
 class WeatherReadingNotifier extends AsyncNotifier<WeatherReading?> {
   static const _hours = 16;
@@ -27,21 +24,14 @@ class WeatherReadingNotifier extends AsyncNotifier<WeatherReading?> {
 
     final provider = ref.watch(activeWeatherProvider);
     final cache = await ref.read(weatherCacheProvider.future);
-    final key = weatherCacheKey(
-      providerName: provider.attributionName,
-      coordinate: coordinate,
-    );
+    final key = weatherCacheKey(providerName: provider.attributionName, coordinate: coordinate);
     final now = ref.read(clockProvider).now();
 
     final cached = await cache.read(key);
     if (cached != null) {
       final age = now.difference(cached.fetchedAt);
       final isStale = age > weatherSnapshotTtl;
-      final reading = WeatherReading(
-        snapshot: cached,
-        isStale: isStale,
-        source: WeatherDataSource.cache,
-      );
+      final reading = WeatherReading(snapshot: cached, isStale: isStale, source: WeatherDataSource.cache);
 
       state = AsyncData(reading);
       if (isStale) {
@@ -51,11 +41,7 @@ class WeatherReadingNotifier extends AsyncNotifier<WeatherReading?> {
     }
 
     final repo = ref.read(weatherRepositoryProvider);
-    final result = await repo.getWeather(
-      coordinate,
-      hours: _hours,
-      days: _days,
-    );
+    final result = await repo.getWeather(coordinate, hours: _hours, days: _days);
     return result.fold((failure) => throw failure, (reading) => reading);
   }
 
@@ -67,19 +53,11 @@ class WeatherReadingNotifier extends AsyncNotifier<WeatherReading?> {
       return;
     }
 
-    state = const AsyncLoading<WeatherReading?>().copyWithPrevious(state);
+    state = const AsyncLoading<WeatherReading?>();
 
     final repo = ref.read(weatherRepositoryProvider);
-    final result = await repo.getWeather(
-      coordinate,
-      hours: _hours,
-      days: _days,
-      forceRefresh: forceRefresh,
-    );
+    final result = await repo.getWeather(coordinate, hours: _hours, days: _days, forceRefresh: forceRefresh);
 
-    state = result.fold(
-      (failure) => AsyncError(failure, StackTrace.current),
-      (reading) => AsyncData(reading),
-    );
+    state = result.fold((failure) => AsyncError(failure, StackTrace.current), (reading) => AsyncData(reading));
   }
 }

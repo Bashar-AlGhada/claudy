@@ -16,7 +16,7 @@ class HourlyForecastList extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: Tokens.space12),
+        separatorBuilder: (_, index) => const SizedBox(width: Tokens.space12),
         itemBuilder: (context, index) {
           final item = items[index];
           return _HourlyItem(item: item);
@@ -38,10 +38,7 @@ class _HourlyItem extends StatelessWidget {
 
     return Container(
       width: 72,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Tokens.cornerRadius),
-        color: colorScheme.surface.withValues(alpha: 0.6),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(Tokens.cornerRadius), color: colorScheme.surface.withValues(alpha: 0.6)),
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -49,10 +46,7 @@ class _HourlyItem extends StatelessWidget {
         children: [
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(
-              time.format(context),
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
+            child: Text(time.format(context), style: Theme.of(context).textTheme.labelSmall),
           ),
           const SizedBox(height: 6),
           WeatherConditionIcon(conditionCode: item.conditionCode, size: 18),

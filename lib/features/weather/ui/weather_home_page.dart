@@ -25,7 +25,7 @@ class WeatherHomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final location = ref.watch(locationProvider);
     final reading = ref.watch(weatherReadingProvider);
-    final lowPower = ref.watch(themeProvider).valueOrNull?.lowPowerMode ?? false;
+    final lowPower = ref.watch(themeProvider).asData?.value.lowPowerMode ?? false;
 
     final content = AppConstrained(
       padding: EdgeInsets.zero,
@@ -37,29 +37,25 @@ class WeatherHomePage extends ConsumerWidget {
           key: const PageStorageKey('weather_home_list'),
           padding: const EdgeInsets.only(top: Tokens.space16, bottom: Tokens.space24),
           children: [
-            if (location.valueOrNull?.isPermissionDenied == true)
+            if (location.asData?.value.isPermissionDenied == true)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
                 child: _InlineMessage(
                   message: LocaleKeys.weatherLocationDenied.tr,
                   actionLabel: LocaleKeys.weatherEnableLocation.tr,
-                  onAction: () =>
-                      ref.read(locationProvider.notifier).requestPermissionAndRefresh(),
+                  onAction: () => ref.read(locationProvider.notifier).requestPermissionAndRefresh(),
                   secondaryActionLabel: LocaleKeys.weatherChooseLocation.tr,
                   onSecondaryAction: () => context.go(AppRoutes.search),
                 ),
               ),
             const SizedBox(height: Tokens.space12),
-            if (reading.valueOrNull != null) ...[
+            if (reading.asData?.value != null) ...[
               if (reading.isLoading)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: Tokens.space16),
                   child: LinearProgressIndicator(minHeight: 2),
                 ),
-              _WeatherContent(
-                value: reading.valueOrNull!,
-                onOpenDetails: () => context.push(AppRoutes.detailsFor('current')),
-              ),
+              _WeatherContent(value: reading.asData!.value!, onOpenDetails: () => context.push(AppRoutes.detailsFor('current'))),
             ] else
               reading.when(
                 data: (value) {
@@ -70,17 +66,11 @@ class WeatherHomePage extends ConsumerWidget {
                       onAction: () => context.go(AppRoutes.search),
                     );
                   }
-                  return _WeatherContent(
-                    value: value,
-                    onOpenDetails: () => context.push(AppRoutes.detailsFor('current')),
-                  );
+                  return _WeatherContent(value: value, onOpenDetails: () => context.push(AppRoutes.detailsFor('current')));
                 },
                 error: (e, _) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-                  child: _ErrorCard(
-                    error: e,
-                    onRetry: () => ref.invalidate(weatherReadingProvider),
-                  ),
+                  child: _ErrorCard(error: e, onRetry: () => ref.invalidate(weatherReadingProvider)),
                 ),
                 loading: () => const Padding(
                   padding: EdgeInsets.symmetric(horizontal: Tokens.space16),
@@ -102,13 +92,7 @@ class WeatherHomePage extends ConsumerWidget {
 }
 
 class _InlineMessage extends StatelessWidget {
-  const _InlineMessage({
-    required this.message,
-    required this.actionLabel,
-    required this.onAction,
-    this.secondaryActionLabel,
-    this.onSecondaryAction,
-  });
+  const _InlineMessage({required this.message, required this.actionLabel, required this.onAction, this.secondaryActionLabel, this.onSecondaryAction});
 
   final String message;
   final String actionLabel;
@@ -121,19 +105,13 @@ class _InlineMessage extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: scheme.surface.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(16)),
       child: Row(
         children: [
           Expanded(child: Text(message)),
           const SizedBox(width: 12),
           if (secondaryActionLabel != null && onSecondaryAction != null) ...[
-            OutlinedButton(
-              onPressed: onSecondaryAction,
-              child: Text(secondaryActionLabel!),
-            ),
+            OutlinedButton(onPressed: onSecondaryAction, child: Text(secondaryActionLabel!)),
             const SizedBox(width: 8),
           ],
           FilledButton(onPressed: onAction, child: Text(actionLabel)),
@@ -160,10 +138,7 @@ class _ErrorCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.5),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.5)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
