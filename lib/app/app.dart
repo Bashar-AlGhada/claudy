@@ -5,12 +5,14 @@ import 'package:claudy/core/routing/app_router.dart';
 import 'package:claudy/core/theme/theme_provider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:riverpod/riverpod.dart';
 import 'package:get/get.dart';
 
 class App extends StatelessWidget {
   const App({super.key, this.overrides = const []});
 
-  final dynamic overrides;
+  final List<Override> overrides;
 
   @override
   Widget build(BuildContext context) {

@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   if (kIsWeb) return NoopNotificationService();
+  if (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS) {
+    return NoopNotificationService();
+  }
   return LocalNotificationService();
 });
-
