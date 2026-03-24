@@ -1,7 +1,7 @@
 class AppConfig {
   static const weatherProvider = String.fromEnvironment(
     'WEATHER_PROVIDER',
-    defaultValue: 'openweather',
+    defaultValue: 'openmeteo',
   );
 
   static const openWeatherApiKey = String.fromEnvironment(

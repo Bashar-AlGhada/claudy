@@ -85,7 +85,7 @@ class _MapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final bg = Paint()..color = Colors.transparent;
+    final bg = Paint()..color = color.withValues(alpha: 0.05);
     canvas.drawRect(Offset.zero & size, bg);
 
     final grid = Paint()

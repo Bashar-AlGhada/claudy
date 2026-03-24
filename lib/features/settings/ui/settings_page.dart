@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:claudy/core/background/background_scheduler.dart';
+import 'package:claudy/core/background/background_refresh_settings.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -27,6 +28,7 @@ class SettingsPage extends ConsumerWidget {
     final location = ref.watch(locationProvider).asData?.value;
     final locationMode = location?.mode ?? LocationMode.precise;
     final notificationPrefs = ref.watch(notificationPreferencesProvider).asData?.value;
+    final backgroundRefreshEnabled = ref.watch(backgroundRefreshEnabledProvider).asData?.value ?? false;
 
     return Scaffold(
       appBar: AppBar(title: Text(LocaleKeys.navSettings.tr)),
@@ -81,26 +83,49 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
             ],
-            ListTile(
-              title: Text(LocaleKeys.settingsBackgroundRefresh.tr),
-              trailing: Wrap(
-                spacing: Tokens.space8,
-                children: [
-                  OutlinedButton(
-                    onPressed: () => BackgroundScheduler.disableRefresh(),
-                    child: Text(LocaleKeys.settingsDisable.tr),
-                  ),
-                  FilledButton(
-                    onPressed: () => BackgroundScheduler.scheduleRefresh(
-                      frequency: (theme?.lowPowerMode ?? false)
-                          ? const Duration(hours: 6)
-                          : const Duration(hours: 3),
+              ListTile(
+                title: Text(LocaleKeys.settingsBackgroundRefresh.tr),
+                subtitle: Text(backgroundRefreshEnabled ? LocaleKeys.settingsEnable.tr : LocaleKeys.settingsDisable.tr),
+                trailing: Wrap(
+                  spacing: Tokens.space8,
+                  children: [
+                    OutlinedButton(
+                      onPressed: backgroundRefreshEnabled
+                          ? () async {
+                              await BackgroundScheduler.disableRefresh();
+                              ref.invalidate(backgroundRefreshEnabledProvider);
+                              if (context.mounted) {
+                                final message = BackgroundScheduler.isSupportedPlatform
+                                    ? LocaleKeys.settingsDisable.tr
+                                    : '${LocaleKeys.settingsDisable.tr} (Android/iOS only)';
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+                              }
+                            }
+                          : null,
+                      child: Text(LocaleKeys.settingsDisable.tr),
                     ),
-                    child: Text(LocaleKeys.settingsEnable.tr),
-                  ),
-                ],
+                    FilledButton(
+                      onPressed: backgroundRefreshEnabled
+                          ? null
+                          : () async {
+                              await BackgroundScheduler.scheduleRefresh(
+                                frequency: (theme?.lowPowerMode ?? false)
+                                    ? const Duration(hours: 6)
+                                    : const Duration(hours: 3),
+                              );
+                              ref.invalidate(backgroundRefreshEnabledProvider);
+                              if (context.mounted) {
+                                final message = BackgroundScheduler.isSupportedPlatform
+                                    ? LocaleKeys.settingsEnable.tr
+                                    : '${LocaleKeys.settingsEnable.tr} (Android/iOS only)';
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+                              }
+                            },
+                      child: Text(LocaleKeys.settingsEnable.tr),
+                    ),
+                  ],
+                ),
               ),
-            ),
             ListTile(
               title: Text(LocaleKeys.settingsLocationMode.tr),
               trailing: DropdownButton<LocationMode>(

@@ -26,7 +26,7 @@ class OpenWeatherPlaceSearchRepository implements PlaceSearchRepository {
       return const Failure(ValidationFailure(message: 'Query too short'));
     }
     if (AppConfig.openWeatherApiKey.isEmpty) {
-      return const Failure(ValidationFailure(message: 'Missing OpenWeather API key'));
+      return _searchWithOpenMeteo(trimmed);
     }
 
     try {
@@ -56,6 +56,56 @@ class OpenWeatherPlaceSearchRepository implements PlaceSearchRepository {
           Place(
             name: name,
             country: country,
+            coordinate: GeoCoordinate(lat: lat.toDouble(), lon: lon.toDouble()),
+          ),
+        );
+      }
+      return Success(results);
+    } catch (e) {
+      return Failure(_mapError(e));
+    }
+  }
+
+  Future<AppResult<List<Place>>> _searchWithOpenMeteo(String query) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        'https://geocoding-api.open-meteo.com/v1/search',
+        queryParameters: {
+          'name': query,
+          'count': 10,
+          'language': 'en',
+          'format': 'json',
+        },
+      );
+
+      final body = response.data;
+      if (body == null) throw const MappingException('Empty geocoding response');
+
+      final items = body['results'];
+      if (items is! List) {
+        return const Success(<Place>[]);
+      }
+
+      final results = <Place>[];
+      for (final item in items) {
+        if (item is! Map) continue;
+        final name = item['name'];
+        final country = item['country'];
+        final countryCode = item['country_code'];
+        final lat = item['latitude'];
+        final lon = item['longitude'];
+        if (name is! String || name.isEmpty) continue;
+        if (lat is! num || lon is! num) continue;
+
+        final countryLabel = switch (country) {
+          String value when value.isNotEmpty => value,
+          _ => countryCode is String && countryCode.isNotEmpty ? countryCode : '-',
+        };
+
+        results.add(
+          Place(
+            name: name,
+            country: countryLabel,
             coordinate: GeoCoordinate(lat: lat.toDouble(), lon: lon.toDouble()),
           ),
         );

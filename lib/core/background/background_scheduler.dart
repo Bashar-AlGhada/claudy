@@ -7,33 +7,34 @@ import 'package:workmanager/workmanager.dart';
 class BackgroundScheduler {
   static const _refreshTask = 'claudy.refreshWeather';
 
-  static bool get _isSupportedPlatform {
+  static bool get isSupportedPlatform {
     if (kIsWeb) return false;
     return defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS;
   }
 
   static Future<void> initialize() async {
-    if (!_isSupportedPlatform) return;
+    if (!isSupportedPlatform) return;
     await Workmanager().initialize(callbackDispatcher);
   }
 
   static Future<void> scheduleRefresh({required Duration frequency}) async {
-    if (!_isSupportedPlatform) return;
     await BackgroundRefreshSettings.setEnabled(true);
+    if (!isSupportedPlatform) return;
     final normalizedFrequency = frequency < const Duration(minutes: 15) ? const Duration(minutes: 15) : frequency;
     await Workmanager().registerPeriodicTask(
       _refreshTask,
       _refreshTask,
       frequency: normalizedFrequency,
       initialDelay: normalizedFrequency,
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
       constraints: Constraints(networkType: NetworkType.connected),
     );
   }
 
   static Future<void> disableRefresh() async {
-    if (!_isSupportedPlatform) return;
     await BackgroundRefreshSettings.setEnabled(false);
-    await Workmanager().cancelAll();
+    if (!isSupportedPlatform) return;
+    await Workmanager().cancelByUniqueName(_refreshTask);
   }
 }
 
