@@ -6,7 +6,6 @@ import 'package:claudy/core/theme/theme_provider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
-import 'package:riverpod/riverpod.dart';
 import 'package:get/get.dart';
 
 class App extends StatelessWidget {

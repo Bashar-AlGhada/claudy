@@ -46,7 +46,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       setState(() => _results = const AsyncLoading());
       final result = await repo.search(query);
       setState(() {
-        _results = result.fold((failure) => AsyncError(failure, StackTrace.current), (places) => AsyncData(places));
+        _results = result.fold(
+          (failure) => AsyncError(failure, StackTrace.current),
+          (places) => AsyncData(places),
+        );
         final next = _results.asData?.value;
         if (next != null) _lastPlaces = next;
       });
@@ -68,7 +71,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   controller: _controller,
                   onChanged: _onQueryChanged,
                   textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(hintText: LocaleKeys.searchHint.tr, border: const OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    hintText: LocaleKeys.searchHint.tr,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
               ),
               Expanded(
@@ -77,8 +83,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   lastPlaces: _lastPlaces,
                   query: _controller.text,
                   onPick: (place) async {
-                    await ref.read(locationProvider.notifier).setManualCoordinate(place.coordinate);
-                    await ref.read(locationProvider.notifier).setMode(LocationMode.manual);
+                    await ref
+                        .read(locationProvider.notifier)
+                        .setManualCoordinate(place.coordinate);
+                    await ref
+                        .read(locationProvider.notifier)
+                        .setMode(LocationMode.manual);
+                    if (context.mounted) context.go('/');
+                  },
+                  onUseCurrentLocation: () async {
+                    await ref
+                        .read(locationProvider.notifier)
+                        .setMode(LocationMode.precise);
                     if (context.mounted) context.go('/');
                   },
                 ),
@@ -92,16 +108,39 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 }
 
 class _SearchResults extends StatelessWidget {
-  const _SearchResults({required this.results, required this.lastPlaces, required this.query, required this.onPick});
+  const _SearchResults({
+    required this.results,
+    required this.lastPlaces,
+    required this.query,
+    required this.onPick,
+    required this.onUseCurrentLocation,
+  });
 
   final AsyncValue<List<Place>> results;
   final List<Place> lastPlaces;
   final String query;
   final Future<void> Function(Place place) onPick;
+  final VoidCallback onUseCurrentLocation;
 
   @override
   Widget build(BuildContext context) {
     final trimmed = query.trim();
+
+    // Empty query: show current location tile + empty hint
+    if (trimmed.isEmpty) {
+      return ListView(
+        children: [
+          _CurrentLocationTile(onTap: onUseCurrentLocation),
+          const Divider(height: 1),
+          AppEmptyState(
+            icon: Icons.search,
+            title: LocaleKeys.searchEmptyHint.tr,
+            body: LocaleKeys.searchHint.tr,
+          ),
+        ],
+      );
+    }
+
     if (results.isLoading && lastPlaces.isNotEmpty) {
       return Column(
         children: [
@@ -114,24 +153,64 @@ class _SearchResults extends StatelessWidget {
     return results.when(
       data: (places) {
         if (places.isEmpty && trimmed.isNotEmpty) {
-          return AppEmptyState(title: LocaleKeys.searchNoResults.tr);
+          return ListView(
+            children: [
+              _CurrentLocationTile(onTap: onUseCurrentLocation),
+              const Divider(height: 1),
+              AppEmptyState(
+                icon: Icons.search_off_outlined,
+                title: LocaleKeys.searchNoResults.tr,
+                body: trimmed,
+              ),
+            ],
+          );
         }
         return _list(places);
       },
       error: (e, _) => AppErrorState(message: LocaleKeys.searchError.tr),
-      loading: () => const AppSkeletonListTiles(),
+      loading: () => Column(
+        children: [
+          _CurrentLocationTile(onTap: onUseCurrentLocation),
+          const Divider(height: 1),
+          const Expanded(child: AppSkeletonListTiles()),
+        ],
+      ),
     );
   }
 
   Widget _list(List<Place> places) {
     return ListView.separated(
       key: const PageStorageKey('search_results_list'),
-      itemCount: places.length,
+      itemCount: places.length + 1,
       separatorBuilder: (_, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
-        final place = places[index];
-        return ListTile(title: Text(place.name), subtitle: Text(place.country), trailing: Text(LocaleKeys.searchPick.tr), onTap: () => onPick(place));
+        if (index == 0) {
+          return _CurrentLocationTile(onTap: onUseCurrentLocation);
+        }
+        final place = places[index - 1];
+        return ListTile(
+          title: Text(place.name),
+          subtitle: Text(place.country),
+          trailing: Text(LocaleKeys.searchPick.tr),
+          onTap: () => onPick(place),
+        );
       },
+    );
+  }
+}
+
+class _CurrentLocationTile extends StatelessWidget {
+  const _CurrentLocationTile({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.my_location),
+      title: Text(LocaleKeys.searchUseCurrentLocation.tr),
+      subtitle: Text(LocaleKeys.searchGpsLocation.tr),
+      onTap: onTap,
     );
   }
 }

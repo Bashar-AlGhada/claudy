@@ -33,6 +33,15 @@ class WeatherSnapshot {
         'windSpeedMps': current.windSpeedMps,
         'conditionCode': current.conditionCode,
         'observedAt': current.observedAt.toIso8601String(),
+        'uvIndex': current.uvIndex,
+        'aqi': current.aqi,
+        'visibilityKm': current.visibilityKm,
+        'pressureHpa': current.pressureHpa,
+        'sunrise': current.sunrise?.toIso8601String(),
+        'sunset': current.sunset?.toIso8601String(),
+        'windGustMps': current.windGustMps,
+        'windDegrees': current.windDegrees,
+        'description': current.description,
       },
       'hourly': [
         for (final h in hourly)
@@ -41,6 +50,9 @@ class WeatherSnapshot {
             'temperatureC': h.temperatureC,
             'precipProbabilityPercent': h.precipProbabilityPercent,
             'conditionCode': h.conditionCode,
+            'windSpeedMps': h.windSpeedMps,
+            'feelsLikeC': h.feelsLikeC,
+            'uvIndex': h.uvIndex,
           },
       ],
       'daily': [
@@ -50,6 +62,12 @@ class WeatherSnapshot {
             'minTemperatureC': d.minTemperatureC,
             'maxTemperatureC': d.maxTemperatureC,
             'conditionCode': d.conditionCode,
+            'uvIndex': d.uvIndex,
+            'sunrise': d.sunrise?.toIso8601String(),
+            'sunset': d.sunset?.toIso8601String(),
+            'precipMm': d.precipMm,
+            'precipProbabilityPercent': d.precipProbabilityPercent,
+            'windSpeedMps': d.windSpeedMps,
           },
       ],
     };
@@ -94,6 +112,15 @@ class WeatherSnapshot {
     final windSpeedMps = raw['windSpeedMps'];
     final conditionCode = raw['conditionCode'];
     final observedAt = raw['observedAt'];
+    final uvIndex = raw['uvIndex'];
+    final aqi = raw['aqi'];
+    final visibilityKm = raw['visibilityKm'];
+    final pressureHpa = raw['pressureHpa'];
+    final sunrise = raw['sunrise'];
+    final sunset = raw['sunset'];
+    final windGustMps = raw['windGustMps'];
+    final windDegrees = raw['windDegrees'];
+    final description = raw['description'];
 
     if (temperatureC is! num) return null;
     if (feelsLikeC is! num) return null;
@@ -102,6 +129,11 @@ class WeatherSnapshot {
     if (conditionCode is! num) return null;
     final observedAtDt = DateTime.tryParse(observedAt?.toString() ?? '');
     if (observedAtDt == null) return null;
+    if (uvIndex is! num) return null;
+    if (visibilityKm is! num) return null;
+    if (pressureHpa is! num) return null;
+    if (windGustMps is! num) return null;
+    if (windDegrees is! num) return null;
 
     return CurrentWeather(
       temperatureC: temperatureC.toDouble(),
@@ -110,6 +142,15 @@ class WeatherSnapshot {
       windSpeedMps: windSpeedMps.toDouble(),
       conditionCode: conditionCode.toInt(),
       observedAt: observedAtDt,
+      uvIndex: uvIndex.toInt(),
+      aqi: aqi is num ? aqi.toInt() : null,
+      visibilityKm: visibilityKm.toDouble(),
+      pressureHpa: pressureHpa.toDouble(),
+      sunrise: DateTime.tryParse(sunrise?.toString() ?? ''),
+      sunset: DateTime.tryParse(sunset?.toString() ?? ''),
+      windGustMps: windGustMps.toDouble(),
+      windDegrees: windDegrees.toInt(),
+      description: description is String ? description : null,
     );
   }
 
@@ -122,16 +163,25 @@ class WeatherSnapshot {
       final temperatureC = item['temperatureC'];
       final precip = item['precipProbabilityPercent'];
       final code = item['conditionCode'];
+      final windSpeedMps = item['windSpeedMps'];
+      final feelsLikeC = item['feelsLikeC'];
+      final uvIndex = item['uvIndex'];
       if (time == null) continue;
       if (temperatureC is! num) continue;
       if (precip is! num) continue;
       if (code is! num) continue;
+      if (windSpeedMps is! num) continue;
+      if (feelsLikeC is! num) continue;
+      if (uvIndex is! num) continue;
       result.add(
         HourlyWeather(
           time: time,
           temperatureC: temperatureC.toDouble(),
           precipProbabilityPercent: precip.toInt().clamp(0, 100),
           conditionCode: code.toInt(),
+          windSpeedMps: windSpeedMps.toDouble(),
+          feelsLikeC: feelsLikeC.toDouble(),
+          uvIndex: uvIndex.toInt(),
         ),
       );
     }
@@ -147,16 +197,32 @@ class WeatherSnapshot {
       final minTemperatureC = item['minTemperatureC'];
       final maxTemperatureC = item['maxTemperatureC'];
       final code = item['conditionCode'];
+      final uvIndex = item['uvIndex'];
+      final sunrise = item['sunrise'];
+      final sunset = item['sunset'];
+      final precipMm = item['precipMm'];
+      final precipProbabilityPercent = item['precipProbabilityPercent'];
+      final windSpeedMps = item['windSpeedMps'];
       if (date == null) continue;
       if (minTemperatureC is! num) continue;
       if (maxTemperatureC is! num) continue;
       if (code is! num) continue;
+      if (uvIndex is! num) continue;
+      if (precipMm is! num) continue;
+      if (precipProbabilityPercent is! num) continue;
+      if (windSpeedMps is! num) continue;
       result.add(
         DailyWeather(
           date: DateTime(date.year, date.month, date.day),
           minTemperatureC: minTemperatureC.toDouble(),
           maxTemperatureC: maxTemperatureC.toDouble(),
           conditionCode: code.toInt(),
+          uvIndex: uvIndex.toInt(),
+          sunrise: DateTime.tryParse(sunrise?.toString() ?? ''),
+          sunset: DateTime.tryParse(sunset?.toString() ?? ''),
+          precipMm: precipMm.toDouble(),
+          precipProbabilityPercent: precipProbabilityPercent.toInt().clamp(0, 100),
+          windSpeedMps: windSpeedMps.toDouble(),
         ),
       );
     }

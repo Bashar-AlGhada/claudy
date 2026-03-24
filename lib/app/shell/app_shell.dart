@@ -1,5 +1,7 @@
 import 'package:claudy/core/routing/app_routes.dart';
 import 'package:claudy/core/i18n/locale_keys.dart';
+import 'package:claudy/core/theme/tokens.dart';
+import 'package:claudy/core/ui/floating_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get/get.dart';
@@ -29,24 +31,24 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final index = _locationToIndex(GoRouterState.of(context).uri.toString());
 
-    final destinations = [
-      NavigationDestination(
-        icon: const Icon(Icons.cloud_outlined),
-        selectedIcon: const Icon(Icons.cloud),
+    final floatingNavItems = [
+      FloatingNavBarItem(
+        icon: Icons.cloud_outlined,
+        selectedIcon: Icons.cloud,
         label: LocaleKeys.navWeather.tr,
       ),
-      NavigationDestination(
-        icon: const Icon(Icons.map_outlined),
-        selectedIcon: const Icon(Icons.map),
+      FloatingNavBarItem(
+        icon: Icons.map_outlined,
+        selectedIcon: Icons.map,
         label: LocaleKeys.navMap.tr,
       ),
-      NavigationDestination(
-        icon: const Icon(Icons.search),
+      FloatingNavBarItem(
+        icon: Icons.search,
         label: LocaleKeys.navSearch.tr,
       ),
-      NavigationDestination(
-        icon: const Icon(Icons.settings_outlined),
-        selectedIcon: const Icon(Icons.settings),
+      FloatingNavBarItem(
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
         label: LocaleKeys.navSettings.tr,
       ),
     ];
@@ -58,16 +60,37 @@ class AppShell extends StatelessWidget {
       }
     }
 
+    // Bottom padding to prevent content from being hidden behind the nav bar.
+    const floatingNavBarTotalHeight = Tokens.floatingNavBarHeight +
+        Tokens.floatingNavBarMargin * 2;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final useRail = constraints.maxWidth >= 720;
         if (!useRail) {
           return Scaffold(
-            body: child,
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: index,
-              onDestinationSelected: onSelect,
-              destinations: destinations,
+            body: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: floatingNavBarTotalHeight,
+                  ),
+                  child: child,
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: FloatingNavBar(
+                      items: floatingNavItems,
+                      selectedIndex: index,
+                      onItemSelected: onSelect,
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         }

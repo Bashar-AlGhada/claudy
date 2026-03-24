@@ -179,6 +179,11 @@ WeatherSnapshot _snapshot(
       windSpeedMps: 1.2,
       conditionCode: 800,
       observedAt: now,
+      uvIndex: 2,
+      visibilityKm: 10,
+      pressureHpa: 1012,
+      windGustMps: 1.8,
+      windDegrees: 180,
     ),
     hourly: [
       HourlyWeather(
@@ -186,6 +191,9 @@ WeatherSnapshot _snapshot(
         temperatureC: 10,
         precipProbabilityPercent: 0,
         conditionCode: 800,
+        windSpeedMps: 1.2,
+        feelsLikeC: 9,
+        uvIndex: 2,
       ),
     ],
     daily: [
@@ -194,6 +202,10 @@ WeatherSnapshot _snapshot(
         minTemperatureC: 8,
         maxTemperatureC: 12,
         conditionCode: 800,
+        uvIndex: 3,
+        precipMm: 0,
+        precipProbabilityPercent: 0,
+        windSpeedMps: 1.5,
       ),
     ],
   );
@@ -241,6 +253,11 @@ class _FakeWeatherProvider implements WeatherProvider {
       windSpeedMps: 1.2,
       conditionCode: 800,
       observedAt: now,
+      uvIndex: 2,
+      visibilityKm: 10,
+      pressureHpa: 1012,
+      windGustMps: 1.8,
+      windDegrees: 180,
     );
   }
 
@@ -256,6 +273,10 @@ class _FakeWeatherProvider implements WeatherProvider {
         minTemperatureC: 8,
         maxTemperatureC: 12,
         conditionCode: 800,
+        uvIndex: 3,
+        precipMm: 0,
+        precipProbabilityPercent: 0,
+        windSpeedMps: 1.5,
       ),
     ];
   }
@@ -272,6 +293,9 @@ class _FakeWeatherProvider implements WeatherProvider {
         temperatureC: 10,
         precipProbabilityPercent: 0,
         conditionCode: 800,
+        windSpeedMps: 1.2,
+        feelsLikeC: 9,
+        uvIndex: 2,
       ),
     ];
   }

@@ -73,7 +73,19 @@ class FakeWeatherProvider implements WeatherProvider {
   @override
   Future<CurrentWeather> getCurrent(GeoCoordinate coordinate) async {
     _maybeThrow();
-    return CurrentWeather(temperatureC: 21, feelsLikeC: 20, humidityPercent: 55, windSpeedMps: 3.2, conditionCode: 800, observedAt: now);
+    return CurrentWeather(
+      temperatureC: 21,
+      feelsLikeC: 20,
+      humidityPercent: 55,
+      windSpeedMps: 3.2,
+      conditionCode: 800,
+      observedAt: now,
+      uvIndex: 4,
+      visibilityKm: 10,
+      pressureHpa: 1013,
+      windGustMps: 4.1,
+      windDegrees: 180,
+    );
   }
 
   @override
@@ -85,6 +97,9 @@ class FakeWeatherProvider implements WeatherProvider {
         temperatureC: 20 + (i % 3),
         precipProbabilityPercent: i == 1 ? 70 : 10,
         conditionCode: 500,
+        windSpeedMps: 3,
+        feelsLikeC: 20 + (i % 3),
+        uvIndex: i < 6 ? 3 : 0,
       );
     });
   }
@@ -94,7 +109,16 @@ class FakeWeatherProvider implements WeatherProvider {
     _maybeThrow();
     return List.generate(days, (i) {
       final date = DateTime(now.year, now.month, now.day).add(Duration(days: i));
-      return DailyWeather(date: date, minTemperatureC: 15, maxTemperatureC: 24, conditionCode: 800);
+      return DailyWeather(
+        date: date,
+        minTemperatureC: 15,
+        maxTemperatureC: 24,
+        conditionCode: 800,
+        uvIndex: 5,
+        precipMm: 0,
+        precipProbabilityPercent: 10,
+        windSpeedMps: 3,
+      );
     });
   }
 

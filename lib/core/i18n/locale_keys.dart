@@ -8,6 +8,9 @@ class LocaleKeys {
   static const searchNoResults = 'search_no_results';
   static const searchError = 'search_error';
   static const searchPick = 'search_pick';
+  static const searchUseCurrentLocation = 'search_use_current_location';
+  static const searchGpsLocation = 'search_gps_location';
+  static const searchEmptyHint = 'search_empty_hint';
   static const weatherStale = 'weather_stale';
   static const weatherUpdatedAt = 'weather_updated_at';
   static const weatherRetry = 'weather_retry';

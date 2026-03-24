@@ -1,11 +1,11 @@
 import 'package:claudy/core/i18n/locale_keys.dart';
-import 'package:claudy/features/weather/providers/weather_reading_provider.dart';
-import 'package:claudy/features/weather/domain/models/daily_weather.dart';
-import 'package:claudy/features/weather/domain/models/hourly_weather.dart';
 import 'package:claudy/core/theme/tokens.dart';
+import 'package:claudy/core/ui/app_layout.dart';
 import 'package:claudy/core/ui/app_skeleton.dart';
 import 'package:claudy/core/ui/app_states.dart';
-import 'package:claudy/core/ui/app_layout.dart';
+import 'package:claudy/features/weather/domain/models/daily_weather.dart';
+import 'package:claudy/features/weather/domain/models/hourly_weather.dart';
+import 'package:claudy/features/weather/providers/weather_reading_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
@@ -25,49 +25,107 @@ class WeatherDetailsPage extends ConsumerWidget {
           child: reading.when(
             data: (data) {
               if (data == null) {
-                return AppEmptyState(title: LocaleKeys.weatherNoLocation.tr);
+                return AppEmptyState(
+                  icon: Icons.place_outlined,
+                  title: LocaleKeys.weatherNoLocation.tr,
+                  body: LocaleKeys.weatherChooseLocation.tr,
+                );
               }
+              final current = data.snapshot.current;
               final hourly = data.snapshot.hourly;
               final daily = data.snapshot.daily;
+              final localizations = MaterialLocalizations.of(context);
+
+              final sunrise = current.sunrise == null
+                  ? '—'
+                  : localizations.formatTimeOfDay(
+                      TimeOfDay.fromDateTime(current.sunrise!),
+                    );
+              final sunset = current.sunset == null
+                  ? '—'
+                  : localizations.formatTimeOfDay(
+                      TimeOfDay.fromDateTime(current.sunset!),
+                    );
+
               return ListView(
                 padding: const EdgeInsets.all(Tokens.space16),
                 children: [
-                  _MetricRow(label: LocaleKeys.weatherFeelsLike.tr, value: '${data.snapshot.current.feelsLikeC.round()}°'),
-                  _MetricRow(label: LocaleKeys.weatherHumidity.tr, value: '${data.snapshot.current.humidityPercent}%'),
-                  _MetricRow(label: LocaleKeys.weatherWind.tr, value: '${data.snapshot.current.windSpeedMps.toStringAsFixed(1)} m/s'),
+                  _MetricRow(
+                    label: LocaleKeys.weatherFeelsLike.tr,
+                    value: '${current.feelsLikeC.round()}°',
+                  ),
+                  _MetricRow(
+                    label: LocaleKeys.weatherHumidity.tr,
+                    value: '${current.humidityPercent}%',
+                  ),
+                  _MetricRow(
+                    label: LocaleKeys.weatherWind.tr,
+                    value: '${current.windSpeedMps.toStringAsFixed(1)} m/s',
+                  ),
+                  _MetricRow(
+                    label: 'Wind Gust',
+                    value: '${current.windGustMps.toStringAsFixed(1)} m/s',
+                  ),
+                  _MetricRow(label: 'UV Index', value: '${current.uvIndex}'),
+                  _MetricRow(
+                    label: 'Pressure',
+                    value: '${current.pressureHpa.round()} hPa',
+                  ),
+                  _MetricRow(
+                    label: 'Visibility',
+                    value: '${current.visibilityKm.toStringAsFixed(1)} km',
+                  ),
+                  _MetricRow(label: 'Sunrise', value: sunrise),
+                  _MetricRow(label: 'Sunset', value: sunset),
                   const SizedBox(height: Tokens.space16),
-                  Text(LocaleKeys.weatherHourly.tr, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    LocaleKeys.weatherHourly.tr,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: Tokens.space12),
                   SizedBox(
                     height: 120,
                     child: Semantics(
                       label: LocaleKeys.weatherHourly.tr,
                       child: CustomPaint(
-                        painter: _HourlySparklinePainter(items: hourly, color: Theme.of(context).colorScheme.primary),
+                        painter: _HourlySparklinePainter(
+                          items: hourly,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: Tokens.space16),
-                  Text(LocaleKeys.weatherDaily.tr, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    LocaleKeys.weatherDaily.tr,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: Tokens.space12),
                   SizedBox(
                     height: 140,
                     child: Semantics(
                       label: LocaleKeys.weatherDaily.tr,
                       child: CustomPaint(
-                        painter: _DailyRangePainter(items: daily, color: Theme.of(context).colorScheme.secondary),
+                        painter: _DailyRangePainter(
+                          items: daily,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
                       ),
                     ),
                   ),
                 ],
               );
             },
-            error: (_, stackTrace) => AppErrorState(
+            error: (_, _) => AppErrorState(
+              icon: Icons.cloud_off_outlined,
               message: LocaleKeys.weatherError.tr,
               retryLabel: LocaleKeys.weatherRetry.tr,
               onRetry: () => ref.invalidate(weatherReadingProvider),
             ),
-            loading: () => const Padding(padding: EdgeInsets.all(Tokens.space16), child: AppSkeletonList()),
+            loading: () => const Padding(
+              padding: EdgeInsets.all(Tokens.space16),
+              child: AppSkeletonList(),
+            ),
           ),
         ),
       ),
@@ -134,7 +192,10 @@ class _HourlySparklinePainter extends CustomPainter {
 
     for (var i = 0; i < temps.length; i++) {
       final x = size.width * (i / (temps.length - 1));
-      final y = size.height - ((temps[i] - minT) / safeRange) * (size.height * 0.9) - size.height * 0.05;
+      final y =
+          size.height -
+          ((temps[i] - minT) / safeRange) * (size.height * 0.9) -
+          size.height * 0.05;
       if (i == 0) {
         path.moveTo(x, y);
         filled.moveTo(x, size.height);
@@ -184,7 +245,11 @@ class _DailyRangePainter extends CustomPainter {
       ..color = color.withValues(alpha: 0.18)
       ..strokeWidth = 1;
 
-    canvas.drawLine(Offset(0, size.height - 1), Offset(size.width, size.height - 1), axis);
+    canvas.drawLine(
+      Offset(0, size.height - 1),
+      Offset(size.width, size.height - 1),
+      axis,
+    );
 
     final gap = 10.0;
     final itemWidth = (size.width - gap * (items.length - 1)) / items.length;
@@ -192,12 +257,21 @@ class _DailyRangePainter extends CustomPainter {
     for (var i = 0; i < items.length; i++) {
       final d = items[i];
       final x = i * (itemWidth + gap);
-      final yMin = size.height - ((d.minTemperatureC - minT) / safeRange) * (size.height * 0.9) - size.height * 0.05;
-      final yMax = size.height - ((d.maxTemperatureC - minT) / safeRange) * (size.height * 0.9) - size.height * 0.05;
+      final yMin =
+          size.height -
+          ((d.minTemperatureC - minT) / safeRange) * (size.height * 0.9) -
+          size.height * 0.05;
+      final yMax =
+          size.height -
+          ((d.maxTemperatureC - minT) / safeRange) * (size.height * 0.9) -
+          size.height * 0.05;
 
       final top = yMax < yMin ? yMax : yMin;
       final bottom = yMax < yMin ? yMin : yMax;
-      final rect = RRect.fromRectAndRadius(Rect.fromLTWH(x, top, itemWidth, (bottom - top).clamp(6, size.height)), const Radius.circular(10));
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, top, itemWidth, (bottom - top).clamp(6, size.height)),
+        const Radius.circular(10),
+      );
       canvas.drawRRect(rect, bar);
     }
   }

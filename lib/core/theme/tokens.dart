@@ -15,4 +15,24 @@ class Tokens {
   static const Duration motionSlow = Duration(milliseconds: 300);
   static const Curve easeOut = Curves.easeOutCubic;
   static const Curve easeInOut = Curves.easeInOutCubic;
+
+  // Floating Navigation Bar
+  static const double floatingNavBarHeight = 64.0;
+  static const double floatingNavBarMargin = 16.0;
+  static const double floatingNavBarBorderRadius = 32.0;
+  static const double floatingNavBarElevation = 8.0;
+  static const double floatingNavBarOpacity = 0.85;
+
+  // Empty State Icons
+  static const double emptyStateIconSize = 120.0;
+  static const double emptyStateIconOpacity = 0.2;
+
+  // Weather Animation Timings
+  static const Duration weatherAnimationDuration = Duration(seconds: 10);
+  static const Duration particleAnimationDuration = Duration(seconds: 3);
+  static const Duration lightningFlashDuration = Duration(milliseconds: 150);
+
+  // Glassmorphism/Transparency
+  static const double glassOpacity = 0.1;
+  static const double glassBlur = 10.0;
 }

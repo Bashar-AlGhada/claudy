@@ -1,6 +1,7 @@
 import 'package:claudy/app/app.dart';
 import 'package:claudy/core/i18n/i18n_store.dart';
 import 'package:claudy/core/i18n/locale_keys.dart';
+import 'package:claudy/core/ui/floating_nav_bar.dart';
 import 'package:claudy/features/weather/domain/models/current_weather.dart';
 import 'package:claudy/features/weather/domain/models/daily_weather.dart';
 import 'package:claudy/features/weather/domain/models/geo_coordinate.dart';
@@ -56,13 +57,12 @@ void main() {
     );
     for (var i = 0; i < 30; i++) {
       await tester.pump(const Duration(milliseconds: 100));
-      if (find.byType(NavigationBar).evaluate().isNotEmpty) break;
+      if (find.byType(FloatingNavBar).evaluate().isNotEmpty) break;
     }
 
-    expect(find.byType(NavigationBar), findsOneWidget);
-    final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-    final destinations = navBar.destinations.cast<NavigationDestination>();
-    expect(destinations.map((d) => d.label).toList(), ['Weather', 'Map', 'Search', 'Settings']);
+    expect(find.byType(FloatingNavBar), findsOneWidget);
+    final navBar = tester.widget<FloatingNavBar>(find.byType(FloatingNavBar));
+    expect(navBar.items.map((item) => item.label).toList(), ['Weather', 'Map', 'Search', 'Settings']);
   });
 
   testWidgets('Renders RTL direction when locale is AR', (WidgetTester tester) async {
@@ -87,19 +87,18 @@ void main() {
     );
     for (var i = 0; i < 30; i++) {
       await tester.pump(const Duration(milliseconds: 100));
-      if (find.byType(NavigationBar).evaluate().isEmpty) continue;
+      if (find.byType(FloatingNavBar).evaluate().isEmpty) continue;
       final directions =
           tester.widgetList(find.byType(Directionality)).map((e) => (e as Directionality).textDirection);
       if (directions.contains(TextDirection.rtl)) break;
     }
 
-    expect(find.byType(NavigationBar), findsOneWidget);
-    final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-    final destinations = navBar.destinations.cast<NavigationDestination>();
-    expect(destinations.map((d) => d.label).toList(), ['الطقس', 'الخريطة', 'بحث', 'الإعدادات']);
+    expect(find.byType(FloatingNavBar), findsOneWidget);
+    final navBar = tester.widget<FloatingNavBar>(find.byType(FloatingNavBar));
+    expect(navBar.items.map((item) => item.label).toList(), ['الطقس', 'الخريطة', 'بحث', 'الإعدادات']);
 
     final directionality = tester.widget<Directionality>(
-      find.ancestor(of: find.byType(NavigationBar), matching: find.byType(Directionality)).first,
+      find.ancestor(of: find.byType(FloatingNavBar), matching: find.byType(Directionality)).first,
     );
     expect(directionality.textDirection, TextDirection.rtl);
   });
@@ -130,7 +129,7 @@ void main() {
     }
 
     expect(find.byType(NavigationRail), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(FloatingNavBar), findsNothing);
   });
 }
 
@@ -148,6 +147,11 @@ WeatherReading _reading() {
         windSpeedMps: 1.2,
         conditionCode: 800,
         observedAt: now,
+        uvIndex: 2,
+        visibilityKm: 10,
+        pressureHpa: 1012,
+        windGustMps: 1.8,
+        windDegrees: 180,
       ),
       hourly: [
         HourlyWeather(
@@ -155,6 +159,9 @@ WeatherReading _reading() {
           temperatureC: 10,
           precipProbabilityPercent: 0,
           conditionCode: 800,
+          windSpeedMps: 1.2,
+          feelsLikeC: 9,
+          uvIndex: 2,
         ),
       ],
       daily: [
@@ -163,6 +170,10 @@ WeatherReading _reading() {
           minTemperatureC: 8,
           maxTemperatureC: 12,
           conditionCode: 800,
+          uvIndex: 3,
+          precipMm: 0,
+          precipProbabilityPercent: 0,
+          windSpeedMps: 1.5,
         ),
       ],
     ),

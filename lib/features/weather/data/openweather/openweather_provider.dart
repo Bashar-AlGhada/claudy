@@ -44,12 +44,14 @@ class OpenWeatherProvider implements WeatherProvider {
 
     final main = body['main'];
     final wind = body['wind'];
+    final sys = body['sys'];
     final weatherList = body['weather'];
     final dt = body['dt'];
     final tz = body['timezone'];
 
     if (main is! Map) throw const MappingException('Invalid "main"');
     if (wind is! Map) throw const MappingException('Invalid "wind"');
+    if (sys != null && sys is! Map) throw const MappingException('Invalid "sys"');
     if (weatherList is! List || weatherList.isEmpty) {
       throw const MappingException('Invalid "weather"');
     }
@@ -63,6 +65,13 @@ class OpenWeatherProvider implements WeatherProvider {
     final first = weatherList.first;
     if (first is! Map) throw const MappingException('Invalid weather[0]');
     final code = _numToInt(first['id']);
+    final visibilityMeters = _safeNumToDouble(body['visibility']) ?? 0;
+    final pressureHpa = _numToDouble(main['pressure']);
+    final sunrise = _unixSecondsToLocalOrNull(sys is Map ? sys['sunrise'] : null, tz.toInt());
+    final sunset = _unixSecondsToLocalOrNull(sys is Map ? sys['sunset'] : null, tz.toInt());
+    final windGustMps = _safeNumToDouble(wind['gust']) ?? windSpeed;
+    final windDegrees = _safeNumToInt(wind['deg']) ?? 0;
+    final description = first['description'] is String ? first['description'] as String : null;
 
     return CurrentWeather(
       temperatureC: temp,
@@ -71,6 +80,15 @@ class OpenWeatherProvider implements WeatherProvider {
       windSpeedMps: math.max(0, windSpeed),
       conditionCode: code,
       observedAt: _unixSecondsToLocal(dt.toInt(), tz.toInt()),
+      uvIndex: 0,
+      aqi: null,
+      visibilityKm: math.max(0, visibilityMeters / 1000),
+      pressureHpa: pressureHpa,
+      sunrise: sunrise,
+      sunset: sunset,
+      windGustMps: math.max(0, windGustMps),
+      windDegrees: windDegrees,
+      description: description,
     );
   }
 
@@ -111,14 +129,17 @@ class OpenWeatherProvider implements WeatherProvider {
       final main = item['main'];
       final pop = item['pop'];
       final weather = item['weather'];
+      final wind = item['wind'];
 
       if (dt is! num || main is! Map) continue;
       if (weather is! List || weather.isEmpty || weather.first is! Map) continue;
 
       final time = _unixSecondsToLocal(dt.toInt(), tzSeconds);
       final temp = _numToDouble(main['temp']);
+      final feelsLike = _safeNumToDouble(main['feels_like']) ?? temp;
       final code = _numToInt((weather.first as Map)['id']);
       final popPercent = ((pop is num ? pop.toDouble() : 0) * 100).round().clamp(0, 100);
+      final double windSpeed = wind is Map ? (_safeNumToDouble(wind['speed']) ?? 0) : 0;
 
       items.add(
         HourlyWeather(
@@ -126,6 +147,9 @@ class OpenWeatherProvider implements WeatherProvider {
           temperatureC: temp,
           precipProbabilityPercent: popPercent,
           conditionCode: code,
+          windSpeedMps: math.max(0.0, windSpeed),
+          feelsLikeC: feelsLike,
+          uvIndex: 0,
         ),
       );
     }
@@ -160,6 +184,13 @@ class OpenWeatherProvider implements WeatherProvider {
         maxT = math.max(maxT, h.temperatureC);
       }
       final code = list[(list.length / 2).floor()].conditionCode;
+      final totalWind = list.fold<double>(0, (sum, h) => sum + h.windSpeedMps);
+      final averageWind = totalWind / list.length;
+      final maxPop = list.fold<int>(0, (maxValue, h) {
+        return math.max(maxValue, h.precipProbabilityPercent);
+      });
+      final avgPop = list.fold<int>(0, (sum, h) => sum + h.precipProbabilityPercent) / list.length;
+      final precipProbability = math.max(0, math.min(100, ((avgPop + maxPop) / 2).round()));
 
       result.add(
         DailyWeather(
@@ -167,6 +198,12 @@ class OpenWeatherProvider implements WeatherProvider {
           minTemperatureC: minT,
           maxTemperatureC: maxT,
           conditionCode: code,
+          uvIndex: 0,
+          sunrise: null,
+          sunset: null,
+          precipMm: _estimatePrecipMm(precipProbability),
+          precipProbabilityPercent: precipProbability,
+          windSpeedMps: averageWind,
         ),
       );
     }
@@ -190,8 +227,31 @@ class OpenWeatherProvider implements WeatherProvider {
     throw const MappingException('Expected int');
   }
 
+  double? _safeNumToDouble(Object? value) {
+    if (value is num) return value.toDouble();
+    return null;
+  }
+
+  int? _safeNumToInt(Object? value) {
+    if (value is num) return value.toInt();
+    return null;
+  }
+
   DateTime _unixSecondsToLocal(int seconds, int timezoneOffsetSeconds) {
     return DateTime.fromMillisecondsSinceEpoch(seconds * 1000, isUtc: true)
         .add(Duration(seconds: timezoneOffsetSeconds));
+  }
+
+  DateTime? _unixSecondsToLocalOrNull(Object? value, int timezoneOffsetSeconds) {
+    if (value is! num) return null;
+    return _unixSecondsToLocal(value.toInt(), timezoneOffsetSeconds);
+  }
+
+  double _estimatePrecipMm(int precipProbabilityPercent) {
+    if (precipProbabilityPercent >= 80) return 8;
+    if (precipProbabilityPercent >= 60) return 4;
+    if (precipProbabilityPercent >= 40) return 1.5;
+    if (precipProbabilityPercent >= 20) return 0.5;
+    return 0;
   }
 }

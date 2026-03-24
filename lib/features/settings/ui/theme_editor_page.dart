@@ -3,6 +3,7 @@ import 'package:claudy/core/theme/tokens.dart';
 import 'package:claudy/core/theme/theme_preset.dart';
 import 'package:claudy/core/theme/theme_provider.dart';
 import 'package:claudy/core/ui/app_layout.dart';
+import 'package:claudy/core/ui/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
@@ -14,7 +15,19 @@ class ThemeEditorPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeProvider).asData?.value;
     if (theme == null) {
-      return const Scaffold(body: SizedBox.shrink());
+      return Scaffold(
+        appBar: AppBar(title: Text(LocaleKeys.themeTitle.tr)),
+        body: SafeArea(
+          child: AppConstrained(
+            padding: EdgeInsets.zero,
+            child: AppEmptyState(
+              icon: Icons.palette_outlined,
+              title: LocaleKeys.themeTitle.tr,
+              body: LocaleKeys.settingsTheme.tr,
+            ),
+          ),
+        ),
+      );
     }
 
     return Scaffold(
@@ -59,7 +72,10 @@ class _ThemeSwatch extends StatelessWidget {
     return Container(
       width: 28,
       height: 28,
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(Tokens.space8)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(Tokens.space8),
+      ),
     );
   }
 }
