@@ -28,8 +28,7 @@ class OpenMeteoProvider implements WeatherProvider {
       queryParameters: {
         'latitude': coordinate.lat,
         'longitude': coordinate.lon,
-        'current':
-            'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code',
+        'current': 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code',
         'timezone': 'auto',
       },
     );
@@ -99,8 +98,7 @@ class OpenMeteoProvider implements WeatherProvider {
       throw const MappingException('Invalid Open-Meteo hourly arrays');
     }
 
-    final count = [times.length, temperatures.length, precip.length, codes.length]
-        .reduce((a, b) => a < b ? a : b);
+    final count = [times.length, temperatures.length, precip.length, codes.length].reduce((a, b) => a < b ? a : b);
     final result = <HourlyWeather>[];
     for (var i = 0; i < count; i++) {
       final time = DateTime.tryParse(times[i]?.toString() ?? '');
@@ -158,8 +156,7 @@ class OpenMeteoProvider implements WeatherProvider {
       throw const MappingException('Invalid Open-Meteo daily arrays');
     }
 
-    final count = [times.length, minTemp.length, maxTemp.length, codes.length]
-        .reduce((a, b) => a < b ? a : b);
+    final count = [times.length, minTemp.length, maxTemp.length, codes.length].reduce((a, b) => a < b ? a : b);
     final result = <DailyWeather>[];
     for (var i = 0; i < count; i++) {
       final date = DateTime.tryParse(times[i]?.toString() ?? '');

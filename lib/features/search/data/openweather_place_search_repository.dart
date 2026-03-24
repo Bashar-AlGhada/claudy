@@ -32,11 +32,7 @@ class OpenWeatherPlaceSearchRepository implements PlaceSearchRepository {
     try {
       final response = await _dio.get<List<dynamic>>(
         'https://api.openweathermap.org/geo/1.0/direct',
-        queryParameters: {
-          'q': trimmed,
-          'limit': 10,
-          'appid': AppConfig.openWeatherApiKey,
-        },
+        queryParameters: {'q': trimmed, 'limit': 10, 'appid': AppConfig.openWeatherApiKey},
       );
 
       final data = response.data;
@@ -70,12 +66,7 @@ class OpenWeatherPlaceSearchRepository implements PlaceSearchRepository {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         'https://geocoding-api.open-meteo.com/v1/search',
-        queryParameters: {
-          'name': query,
-          'count': 10,
-          'language': 'en',
-          'format': 'json',
-        },
+        queryParameters: {'name': query, 'count': 10, 'language': 'en', 'format': 'json'},
       );
 
       final body = response.data;
@@ -123,4 +114,3 @@ class OpenWeatherPlaceSearchRepository implements PlaceSearchRepository {
     return UnknownFailure(message: e.toString());
   }
 }
-

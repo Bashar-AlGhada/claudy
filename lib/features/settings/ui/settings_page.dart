@@ -44,45 +44,37 @@ class SettingsPage extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push(AppRoutes.settingsTheme),
                 ),
-            if (notificationPrefs != null) ...[
-              SwitchListTile(
-                title: Text(LocaleKeys.settingsNotificationsEnabled.tr),
-                value: notificationPrefs.enabled,
-                onChanged: (enabled) async {
-                  if (enabled) {
-                    await ref.read(notificationServiceProvider).requestPermissions();
-                  }
-                  await ref.read(notificationPreferencesProvider.notifier).setEnabled(enabled);
-                },
-              ),
-              SwitchListTile(
-                title: Text(LocaleKeys.settingsNotificationsRainSoon.tr),
-                value: notificationPrefs.rainSoon,
-                onChanged: notificationPrefs.enabled
-                    ? (enabled) => ref
-                        .read(notificationPreferencesProvider.notifier)
-                        .setRainSoon(enabled)
-                    : null,
-              ),
-              SwitchListTile(
-                title: Text(LocaleKeys.settingsNotificationsExtremeHeat.tr),
-                value: notificationPrefs.extremeHeat,
-                onChanged: notificationPrefs.enabled
-                    ? (enabled) => ref
-                        .read(notificationPreferencesProvider.notifier)
-                        .setExtremeHeat(enabled)
-                    : null,
-              ),
-              ListTile(
-                title: Text(LocaleKeys.settingsNotifications.tr),
-                trailing: FilledButton(
-                  onPressed: () => ref
-                      .read(notificationServiceProvider)
-                      .showTestNotification(),
-                  child: Text(LocaleKeys.settingsTestNotification.tr),
+              if (notificationPrefs != null) ...[
+                SwitchListTile(
+                  title: Text(LocaleKeys.settingsNotificationsEnabled.tr),
+                  value: notificationPrefs.enabled,
+                  onChanged: (enabled) async {
+                    if (enabled) {
+                      await ref.read(notificationServiceProvider).requestPermissions();
+                    }
+                    await ref.read(notificationPreferencesProvider.notifier).setEnabled(enabled);
+                  },
                 ),
-              ),
-            ],
+                SwitchListTile(
+                  title: Text(LocaleKeys.settingsNotificationsRainSoon.tr),
+                  value: notificationPrefs.rainSoon,
+                  onChanged: notificationPrefs.enabled ? (enabled) => ref.read(notificationPreferencesProvider.notifier).setRainSoon(enabled) : null,
+                ),
+                SwitchListTile(
+                  title: Text(LocaleKeys.settingsNotificationsExtremeHeat.tr),
+                  value: notificationPrefs.extremeHeat,
+                  onChanged: notificationPrefs.enabled
+                      ? (enabled) => ref.read(notificationPreferencesProvider.notifier).setExtremeHeat(enabled)
+                      : null,
+                ),
+                ListTile(
+                  title: Text(LocaleKeys.settingsNotifications.tr),
+                  trailing: FilledButton(
+                    onPressed: () => ref.read(notificationServiceProvider).showTestNotification(),
+                    child: Text(LocaleKeys.settingsTestNotification.tr),
+                  ),
+                ),
+              ],
               ListTile(
                 title: Text(LocaleKeys.settingsBackgroundRefresh.tr),
                 subtitle: Text(backgroundRefreshEnabled ? LocaleKeys.settingsEnable.tr : LocaleKeys.settingsDisable.tr),
@@ -109,9 +101,7 @@ class SettingsPage extends ConsumerWidget {
                           ? null
                           : () async {
                               await BackgroundScheduler.scheduleRefresh(
-                                frequency: (theme?.lowPowerMode ?? false)
-                                    ? const Duration(hours: 6)
-                                    : const Duration(hours: 3),
+                                frequency: (theme?.lowPowerMode ?? false) ? const Duration(hours: 6) : const Duration(hours: 3),
                               );
                               ref.invalidate(backgroundRefreshEnabledProvider);
                               if (context.mounted) {
@@ -126,90 +116,69 @@ class SettingsPage extends ConsumerWidget {
                   ],
                 ),
               ),
-            ListTile(
-              title: Text(LocaleKeys.settingsLocationMode.tr),
-              trailing: DropdownButton<LocationMode>(
-                value: locationMode,
-                onChanged: (next) {
-                  if (next == null) return;
-                  ref.read(locationProvider.notifier).setMode(next);
-                },
-                items: [
-                  DropdownMenuItem(
-                    value: LocationMode.precise,
-                    child: Text(LocaleKeys.locationModePrecise.tr),
-                  ),
-                  DropdownMenuItem(
-                    value: LocationMode.coarse,
-                    child: Text(LocaleKeys.locationModeCoarse.tr),
-                  ),
-                  DropdownMenuItem(
-                    value: LocationMode.manual,
-                    child: Text(LocaleKeys.locationModeManual.tr),
-                  ),
-                ],
+              ListTile(
+                title: Text(LocaleKeys.settingsLocationMode.tr),
+                trailing: DropdownButton<LocationMode>(
+                  value: locationMode,
+                  onChanged: (next) {
+                    if (next == null) return;
+                    ref.read(locationProvider.notifier).setMode(next);
+                  },
+                  items: [
+                    DropdownMenuItem(value: LocationMode.precise, child: Text(LocaleKeys.locationModePrecise.tr)),
+                    DropdownMenuItem(value: LocationMode.coarse, child: Text(LocaleKeys.locationModeCoarse.tr)),
+                    DropdownMenuItem(value: LocationMode.manual, child: Text(LocaleKeys.locationModeManual.tr)),
+                  ],
+                ),
               ),
-            ),
-            ListTile(
-              title: Text(LocaleKeys.settingsLanguage.tr),
-              trailing: DropdownButton<Locale>(
-                value: locale,
-                onChanged: (next) {
-                  if (next == null) return;
-                  ref.read(localeProvider.notifier).setLocale(next);
-                },
-                items: [
-                  DropdownMenuItem(
-                    value: const Locale('en'),
-                    child: Text(LocaleKeys.languageEnglish.tr),
-                  ),
-                  DropdownMenuItem(
-                    value: const Locale('nl'),
-                    child: Text(LocaleKeys.languageDutch.tr),
-                  ),
-                  DropdownMenuItem(
-                    value: const Locale('ar'),
-                    child: Text(LocaleKeys.languageArabic.tr),
-                  ),
-                ],
+              ListTile(
+                title: Text(LocaleKeys.settingsLanguage.tr),
+                trailing: DropdownButton<Locale>(
+                  value: locale,
+                  onChanged: (next) {
+                    if (next == null) return;
+                    ref.read(localeProvider.notifier).setLocale(next);
+                  },
+                  items: [
+                    DropdownMenuItem(value: const Locale('en'), child: Text(LocaleKeys.languageEnglish.tr)),
+                    DropdownMenuItem(value: const Locale('nl'), child: Text(LocaleKeys.languageDutch.tr)),
+                    DropdownMenuItem(value: const Locale('ar'), child: Text(LocaleKeys.languageArabic.tr)),
+                  ],
+                ),
               ),
-            ),
-            if (theme != null)
-              SwitchListTile(
-                title: Text(LocaleKeys.settingsLowPower.tr),
-                value: theme.lowPowerMode,
-                onChanged: (enabled) =>
-                    ref.read(themeProvider.notifier).setLowPowerMode(enabled),
-              ),
-            const SizedBox(height: Tokens.space8),
-            const Divider(height: 1),
-            const SizedBox(height: Tokens.space8),
-            ListTile(
-              title: Text(LocaleKeys.settingsDiagnostics.tr),
-              trailing: FilledButton(
-                onPressed: () async {
-                  final svc = DiagnosticsService();
-                  final bundle = await svc.collect();
-                  bundle['logs'] = {'recent': LogBuffer.snapshot()};
-                  bundle['performance'] = {'frameTimings': FrameMonitor.metrics()};
-                  try {
-                    final file = await svc.exportToTemp(bundle);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(LocaleKeys.diagnosticsExportSuccess.trParams({'path': file.path}))),
-                      );
+              if (theme != null)
+                SwitchListTile(
+                  title: Text(LocaleKeys.settingsLowPower.tr),
+                  value: theme.lowPowerMode,
+                  onChanged: (enabled) => ref.read(themeProvider.notifier).setLowPowerMode(enabled),
+                ),
+              const SizedBox(height: Tokens.space8),
+              const Divider(height: 1),
+              const SizedBox(height: Tokens.space8),
+              ListTile(
+                title: Text(LocaleKeys.settingsDiagnostics.tr),
+                trailing: FilledButton(
+                  onPressed: () async {
+                    final svc = DiagnosticsService();
+                    final bundle = await svc.collect();
+                    bundle['logs'] = {'recent': LogBuffer.snapshot()};
+                    bundle['performance'] = {'frameTimings': FrameMonitor.metrics()};
+                    try {
+                      final file = await svc.exportToTemp(bundle);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(LocaleKeys.diagnosticsExportSuccess.trParams({'path': file.path}))));
+                      }
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocaleKeys.diagnosticsExportFailure.tr)));
+                      }
                     }
-                  } catch (_) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(LocaleKeys.diagnosticsExportFailure.tr)),
-                      );
-                    }
-                  }
-                },
-                child: Text(LocaleKeys.settingsExportDiagnostics.tr),
+                  },
+                  child: Text(LocaleKeys.settingsExportDiagnostics.tr),
+                ),
               ),
-            ),
             ],
           ),
         ),

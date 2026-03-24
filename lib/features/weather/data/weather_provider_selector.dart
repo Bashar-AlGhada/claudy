@@ -11,4 +11,3 @@ final activeWeatherProvider = Provider<WeatherProvider>((ref) {
     _ => ref.watch(openMeteoProvider),
   };
 });
-

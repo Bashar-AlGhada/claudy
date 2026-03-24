@@ -18,4 +18,3 @@ class BackgroundRefreshSettings {
     await prefs.setBool(_keyEnabled, enabled);
   }
 }
-

@@ -8,25 +8,13 @@ class CanvasMapProvider implements MapProvider {
   String get name => 'Canvas';
 
   @override
-  Widget build({
-    required Set<MapOverlay> overlays,
-    required GeoCoordinate? marker,
-    required ValueChanged<GeoCoordinate> onTap,
-  }) {
-    return _CanvasMapView(
-      overlays: overlays,
-      marker: marker,
-      onTap: onTap,
-    );
+  Widget build({required Set<MapOverlay> overlays, required GeoCoordinate? marker, required ValueChanged<GeoCoordinate> onTap}) {
+    return _CanvasMapView(overlays: overlays, marker: marker, onTap: onTap);
   }
 }
 
 class _CanvasMapView extends StatelessWidget {
-  const _CanvasMapView({
-    required this.overlays,
-    required this.marker,
-    required this.onTap,
-  });
+  const _CanvasMapView({required this.overlays, required this.marker, required this.onTap});
 
   final Set<MapOverlay> overlays;
   final GeoCoordinate? marker;
@@ -52,10 +40,7 @@ class _CanvasMapView extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               CustomPaint(
-                painter: _MapPainter(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.28),
-                  overlays: overlays,
-                ),
+                painter: _MapPainter(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.28), overlays: overlays),
               ),
               if (marker != null)
                 Align(
@@ -63,10 +48,7 @@ class _CanvasMapView extends StatelessWidget {
                   child: Container(
                     width: 14,
                     height: 14,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Theme.of(context).colorScheme.secondary,
-                    ),
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.secondary),
                   ),
                 ),
             ],
@@ -140,4 +122,3 @@ class _MapPainter extends CustomPainter {
     return oldDelegate.color != color || oldDelegate.overlays != overlays;
   }
 }
-
