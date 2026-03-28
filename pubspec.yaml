@@ -81,8 +81,10 @@ flutter_launcher_icons:
   windows:
     generate: true
   image_path: "assets/images/icon.PNG"
-  adaptive_icon_background: "#1a1a2e"
-  adaptive_icon_foreground: "assets/images/icon.PNG"
+  # Disable adaptive icons since our icon already has rounded corners
+  # Using adaptive icons would cause double-cropping
+  android_13:
+    generate: false
 
 flutter_native_splash:
   color: "#1a1a2e"
