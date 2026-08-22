@@ -172,7 +172,6 @@ class _SunPathPainter extends CustomPainter {
     // Draw full arc in inactive color
     canvas.drawArc(arcRect, math.pi, math.pi, false, inactiveArcPaint);
 
-    // Calculate sun position
     final dayDuration = sunset.difference(sunrise).inMinutes;
     final elapsed = currentTime.difference(sunrise).inMinutes;
     var progress = elapsed / dayDuration;

@@ -148,7 +148,6 @@ class _AqiScale extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // AQI scale: 0-50 green, 51-100 yellow, 101-150 orange, 151-200 red, 201-300 purple, 301+ maroon
     final segments = [
       (color: Colors.green, maxValue: 50),
       (color: Colors.yellow.shade700, maxValue: 100),
@@ -158,7 +157,6 @@ class _AqiScale extends StatelessWidget {
       (color: Colors.brown.shade700, maxValue: 500),
     ];
 
-    // Calculate indicator position (0.0 to 1.0)
     final clampedAqi = currentAqi.clamp(0, 500);
     final position = clampedAqi / 500;
 

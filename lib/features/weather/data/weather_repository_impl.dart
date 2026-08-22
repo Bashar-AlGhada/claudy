@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:claudy/core/errors/app_failure.dart';
 import 'package:claudy/core/errors/app_exception.dart';
 import 'package:claudy/core/http/interceptors/rate_limit_interceptor.dart';
+import 'package:claudy/core/logging/app_logger.dart';
 import 'package:claudy/core/result/app_result.dart';
 import 'package:claudy/features/weather/data/cache/weather_cache_key.dart';
 import 'package:claudy/features/weather/data/cache/weather_cache_policy.dart';
@@ -84,9 +85,14 @@ class WeatherRepositoryImpl implements WeatherRepository {
           source: WeatherDataSource.network,
         ),
       );
-    } catch (e) {
+    } catch (e, s) {
       final failure = _mapError(e);
       if (cached != null) {
+        AppLogger.warn(
+          'Weather fetch failed; serving stale cache from ${_provider.attributionName}',
+          error: e,
+          stackTrace: s,
+        );
         return Success(
           WeatherReading(
             snapshot: cached,
@@ -95,6 +101,7 @@ class WeatherRepositoryImpl implements WeatherRepository {
           ),
         );
       }
+      AppLogger.warn('Weather fetch failed with no cached fallback', error: e, stackTrace: s);
       return Failure(failure);
     }
   }

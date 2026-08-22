@@ -1,7 +1,10 @@
+import 'package:claudy/core/location/bigdatacloud_reverse_geocoder.dart';
 import 'package:claudy/core/location/location_client.dart';
 import 'package:claudy/core/location/location_client_provider.dart';
 import 'package:claudy/core/location/location_mode.dart';
 import 'package:claudy/core/location/location_provider.dart';
+import 'package:claudy/core/location/reverse_geocoder.dart';
+import 'package:claudy/features/weather/domain/models/geo_coordinate.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -61,15 +64,82 @@ void main() {
     expect(state.mode, LocationMode.coarse);
     expect(client.lastSettings?.accuracy, LocationAccuracy.low);
   });
+
+  test('Successful GPS fix resolves and persists a place name', () async {
+    SharedPreferences.setMockInitialValues({
+      'settings.location.mode': 'precise',
+      'settings.location.manualLat': 10.0,
+      'settings.location.manualLon': 20.0,
+    });
+
+    final client = _FakeLocationClient(
+      serviceEnabled: true,
+      permission: LocationPermission.whileInUse,
+      position: _position(52.3725, 4.8930),
+    );
+    final geocoder = _FakeReverseGeocoder(name: 'Amsterdam, Netherlands');
+    final container = ProviderContainer(overrides: [
+      locationClientProvider.overrideWithValue(client),
+      reverseGeocoderProvider.overrideWithValue(geocoder),
+    ]);
+    addTearDown(container.dispose);
+
+    final state = await container.read(locationProvider.future);
+    expect(state.coordinate?.lat, 52.3725);
+    expect(state.name, 'Amsterdam, Netherlands');
+    expect(geocoder.calls, 1);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('settings.location.lastKnownPlaceName'), 'Amsterdam, Netherlands');
+
+    // Same spot again: cached name, no extra network call.
+    final second = await container.refresh(locationProvider.future);
+    expect(second.name, 'Amsterdam, Netherlands');
+    expect(geocoder.calls, 1);
+  });
+}
+
+Position _position(double lat, double lon) {
+  return Position(
+    latitude: lat,
+    longitude: lon,
+    timestamp: DateTime.fromMillisecondsSinceEpoch(0),
+    altitude: 0,
+    altitudeAccuracy: 0,
+    accuracy: 0,
+    heading: 0,
+    headingAccuracy: 0,
+    speed: 0,
+    speedAccuracy: 0,
+  );
+}
+
+class _FakeReverseGeocoder implements ReverseGeocoder {
+  _FakeReverseGeocoder({this.name});
+
+  int calls = 0;
+  final String? name;
+
+  @override
+  Future<String?> resolveName(GeoCoordinate coordinate, {String? languageCode}) async {
+    calls++;
+    return name;
+  }
 }
 
 class _FakeLocationClient implements LocationClient {
-  _FakeLocationClient({this.serviceEnabled, this.permission, this.throwOnPosition = false});
+  _FakeLocationClient({
+    this.serviceEnabled,
+    this.permission,
+    this.throwOnPosition = false,
+    this.position,
+  });
 
   int calls = 0;
   final bool? serviceEnabled;
   final LocationPermission? permission;
   final bool throwOnPosition;
+  final Position? position;
 
   LocationSettings? lastSettings;
 
@@ -90,7 +160,9 @@ class _FakeLocationClient implements LocationClient {
     calls++;
     lastSettings = settings;
     if (throwOnPosition) throw Exception('no position');
-    throw UnimplementedError();
+    final position = this.position;
+    if (position == null) throw UnimplementedError();
+    return position;
   }
 
   @override

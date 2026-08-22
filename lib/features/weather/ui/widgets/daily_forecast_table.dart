@@ -216,7 +216,6 @@ class _DailyForecastRowState extends State<_DailyForecastRow> {
             ),
           ),
         ),
-        // Expanded details
         AnimatedCrossFade(
           firstChild: const SizedBox(width: double.infinity),
           secondChild: _ExpandedDetails(

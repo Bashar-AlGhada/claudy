@@ -7,25 +7,30 @@ class LocationState {
     required this.coordinate,
     required this.isPermissionDenied,
     required this.isServiceDisabled,
+    this.name,
   });
 
   final LocationMode mode;
+
+  /// Human-readable place label for manually picked locations.
+  final String? name;
   final GeoCoordinate? coordinate;
   final bool isPermissionDenied;
   final bool isServiceDisabled;
 
   LocationState copyWith({
     LocationMode? mode,
+    String? name,
     GeoCoordinate? coordinate,
     bool? isPermissionDenied,
     bool? isServiceDisabled,
   }) {
     return LocationState(
       mode: mode ?? this.mode,
+      name: name ?? this.name,
       coordinate: coordinate ?? this.coordinate,
       isPermissionDenied: isPermissionDenied ?? this.isPermissionDenied,
       isServiceDisabled: isServiceDisabled ?? this.isServiceDisabled,
     );
   }
 }
-

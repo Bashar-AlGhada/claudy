@@ -1,28 +1,24 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:claudy/core/theme/tokens.dart';
+import 'package:claudy/features/weather/ui/background/particle_animation.dart';
 
-/// Realistic rain animation with varying drop sizes, speeds, and wind angles.
-class RainAnimation extends StatefulWidget {
-  const RainAnimation({super.key, this.intensity = 1.0, this.lowPower = false});
-
-  /// Rain intensity from 0.0 (light drizzle) to 1.0 (heavy downpour).
-  final double intensity;
-
-  /// Disables animation when battery saving is active.
-  final bool lowPower;
+/// Rain animation with varying drop sizes, speeds, and wind angles.
+class RainAnimation extends ParticleAnimation {
+  const RainAnimation({super.key, super.intensity, super.lowPower});
 
   @override
   State<RainAnimation> createState() => _RainAnimationState();
 }
 
-class _RainAnimationState extends State<RainAnimation>
-    with SingleTickerProviderStateMixin {
+class _RainAnimationState extends ParticleAnimationState<RainAnimation> {
   static const int _minDropCount = 24;
   static const int _maxDropCount = 80;
-  late AnimationController _controller;
+
   late List<_Raindrop> _drops;
-  final Random _random = Random();
+
+  @override
+  Duration get cycleDuration => Tokens.particleAnimationDuration;
 
   int get _dropCount {
     final clampedIntensity = widget.intensity.clamp(0.0, 1.0);
@@ -33,65 +29,30 @@ class _RainAnimationState extends State<RainAnimation>
   }
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: Tokens.particleAnimationDuration,
-    )..repeat();
-    _initDrops();
-  }
-
-  void _initDrops() {
+  void regenerate() {
     _drops = List.generate(_dropCount, (_) => _createDrop());
   }
 
   _Raindrop _createDrop() {
     final speedMultiplier =
-        0.6 + (_random.nextDouble() * 0.8 * widget.intensity);
+        0.6 + (random.nextDouble() * 0.8 * widget.intensity);
     return _Raindrop(
-      x: _random.nextDouble(),
-      y: _random.nextDouble(),
-      length: 8 + _random.nextDouble() * 12 * widget.intensity,
+      x: random.nextDouble(),
+      y: random.nextDouble(),
+      length: 8 + random.nextDouble() * 12 * widget.intensity,
       speed: speedMultiplier,
-      thickness: 1.0 + _random.nextDouble() * 1.5,
-      angle: -0.1 + _random.nextDouble() * 0.2,
-      opacity: 0.3 + _random.nextDouble() * 0.4,
+      thickness: 1.0 + random.nextDouble() * 1.5,
+      angle: -0.1 + random.nextDouble() * 0.2,
+      opacity: 0.3 + random.nextDouble() * 0.4,
     );
   }
 
   @override
-  void didUpdateWidget(RainAnimation oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.intensity != widget.intensity) {
-      _initDrops();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.lowPower) return const SizedBox.expand();
-
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) => CustomPaint(
-          painter: _RainPainter(
-            drops: _drops,
-            progress: _controller.value,
-            intensity: widget.intensity,
-          ),
-          size: Size.infinite,
-        ),
-      ),
-    );
-  }
+  CustomPainter createPainter(double progress) => _RainPainter(
+        drops: _drops,
+        progress: progress,
+        intensity: widget.intensity,
+      );
 }
 
 class _Raindrop {
@@ -135,7 +96,6 @@ class _RainPainter extends CustomPainter {
     final windOffset = sin(progress * pi * 2) * 0.02 * clampedIntensity;
 
     for (final drop in drops) {
-      // Calculate position with wrapping
       final y = (drop.y + progress * drop.speed * 2) % 1.2 - 0.1;
       final x = (drop.x + windOffset + progress * drop.angle * 0.5) % 1.0;
 
@@ -151,7 +111,6 @@ class _RainPainter extends CustomPainter {
       canvas.drawLine(Offset(startX, startY), Offset(endX, endY), _dropPaint);
     }
 
-    // Draw ripples at bottom
     _drawRipples(canvas, size, clampedIntensity);
   }
 

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:claudy/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 
@@ -13,6 +15,8 @@ class WeatherMetricsGrid extends StatelessWidget {
     required this.visibility,
     this.aqi,
   });
+
+  static const double _minCellHeight = 160;
 
   final int uvIndex;
   final int humidity;
@@ -60,18 +64,29 @@ class WeatherMetricsGrid extends StatelessWidget {
         ),
     ];
 
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: Tokens.space12,
-        crossAxisSpacing: Tokens.space12,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: metrics.length,
-      itemBuilder: (context, index) => _MetricCard(data: metrics[index]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const columns = 3;
+        final cellWidth =
+            (constraints.maxWidth - Tokens.space12 * (columns - 1)) / columns;
+        // Square cells only while there is room; below the minimum height the
+        // cards would clip their content (e.g. in a narrow multi-pane column).
+        final cellHeight = math.max(cellWidth, _minCellHeight);
+
+        return GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: Tokens.space12,
+            crossAxisSpacing: Tokens.space12,
+            childAspectRatio: cellWidth / cellHeight,
+          ),
+          itemCount: metrics.length,
+          itemBuilder: (context, index) => _MetricCard(data: metrics[index]),
+        );
+      },
     );
   }
 

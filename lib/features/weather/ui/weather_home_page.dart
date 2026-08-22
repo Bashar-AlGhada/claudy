@@ -6,7 +6,6 @@ import 'package:claudy/core/location/location_state.dart';
 import 'package:claudy/core/routing/app_routes.dart';
 import 'package:claudy/core/theme/theme_provider.dart';
 import 'package:claudy/core/theme/tokens.dart';
-import 'package:claudy/core/ui/app_layout.dart';
 import 'package:claudy/core/ui/app_skeleton.dart';
 import 'package:claudy/core/ui/app_states.dart';
 import 'package:claudy/features/weather/domain/models/weather_reading.dart';
@@ -28,6 +27,8 @@ import 'package:go_router/go_router.dart';
 class WeatherHomePage extends ConsumerWidget {
   const WeatherHomePage({super.key});
 
+  static const double _wideBreakpoint = 900;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = ref.watch(locationProvider);
@@ -37,98 +38,112 @@ class WeatherHomePage extends ConsumerWidget {
 
     final locationData = location.asData?.value;
     final locationName = _buildLocationName(locationData);
-    final regionName = _buildLocationRegion(locationData);
+    final coordinates = _buildCoordinates(locationData);
     final isCurrentLocation = _isCurrentLocation(locationData?.mode);
 
-    final content = AppConstrained(
-      padding: EdgeInsets.zero,
-      child: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(weatherReadingProvider.notifier).refresh();
-        },
-        child: ListView(
-          key: const PageStorageKey('weather_home_list'),
-          padding: const EdgeInsets.only(
-            top: Tokens.space16,
-            bottom: Tokens.space24,
+    final content = LayoutBuilder(
+      builder: (context, constraints) {
+        // Keep the phone column width; only spread out on genuinely wide
+        // windows so the two-pane layout has room to breathe.
+        final maxWidth =
+            constraints.maxWidth >= _wideBreakpoint ? 1200.0 : 720.0;
+        return Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await ref.read(weatherReadingProvider.notifier).refresh();
+              },
+              child: ListView(
+                key: const PageStorageKey('weather_home_list'),
+                padding: const EdgeInsets.only(
+                  top: Tokens.space16,
+                  bottom: Tokens.space24,
+                ),
+                children: [
+                  if (locationData?.isPermissionDenied == true)
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: Tokens.space16),
+                      child: _InlineMessage(
+                        message: LocaleKeys.weatherLocationDenied.tr,
+                        actionLabel: LocaleKeys.weatherEnableLocation.tr,
+                        onAction: () => ref
+                            .read(locationProvider.notifier)
+                            .requestPermissionAndRefresh(),
+                        secondaryActionLabel: LocaleKeys.weatherChooseLocation.tr,
+                        onSecondaryAction: () => context.go(AppRoutes.search),
+                      ),
+                    ),
+                  const SizedBox(height: Tokens.space12),
+                  if (reading.asData?.value != null) ...[
+                    if (reading.isLoading)
+                      const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: Tokens.space16),
+                        child: LinearProgressIndicator(minHeight: 2),
+                      ),
+                    _WeatherContent(
+                      value: reading.asData!.value!,
+                      locationName: locationName,
+                      coordinates: coordinates,
+                      isCurrentLocation: isCurrentLocation,
+                      onRefreshLocation: () => ref
+                          .read(locationProvider.notifier)
+                          .requestPermissionAndRefresh(),
+                      onOpenDetails: () =>
+                          context.push(AppRoutes.detailsFor('current')),
+                    ),
+                  ] else
+                    reading.when(
+                      data: (value) {
+                        if (value == null) {
+                          return AppEmptyState(
+                            icon: Icons.place_outlined,
+                            title: LocaleKeys.weatherNoLocation.tr,
+                            body: LocaleKeys.weatherChooseLocation.tr,
+                            actionLabel: LocaleKeys.weatherChooseLocation.tr,
+                            onAction: () => context.go(AppRoutes.search),
+                          );
+                        }
+                        return _WeatherContent(
+                          value: value,
+                          locationName: locationName,
+                          coordinates: coordinates,
+                          isCurrentLocation: isCurrentLocation,
+                          onRefreshLocation: () => ref
+                              .read(locationProvider.notifier)
+                              .requestPermissionAndRefresh(),
+                          onOpenDetails: () =>
+                              context.push(AppRoutes.detailsFor('current')),
+                        );
+                      },
+                      error: (e, _) => Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Tokens.space16,
+                        ),
+                        child: _ErrorCard(
+                          error: e,
+                          onRetry: () =>
+                              ref.invalidate(weatherReadingProvider),
+                        ),
+                      ),
+                      loading: () => const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: Tokens.space16),
+                        child: AppSkeletonList(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
-          children: [
-            if (locationData?.isPermissionDenied == true)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-                child: _InlineMessage(
-                  message: LocaleKeys.weatherLocationDenied.tr,
-                  actionLabel: LocaleKeys.weatherEnableLocation.tr,
-                  onAction: () => ref
-                      .read(locationProvider.notifier)
-                      .requestPermissionAndRefresh(),
-                  secondaryActionLabel: LocaleKeys.weatherChooseLocation.tr,
-                  onSecondaryAction: () => context.go(AppRoutes.search),
-                ),
-              ),
-            const SizedBox(height: Tokens.space12),
-            if (reading.asData?.value != null) ...[
-              if (reading.isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: Tokens.space16),
-                  child: LinearProgressIndicator(minHeight: 2),
-                ),
-              _WeatherContent(
-                value: reading.asData!.value!,
-                locationName: locationName,
-                regionName: regionName,
-                isCurrentLocation: isCurrentLocation,
-                onRefreshLocation: () => ref
-                    .read(locationProvider.notifier)
-                    .requestPermissionAndRefresh(),
-                onOpenDetails: () =>
-                    context.push(AppRoutes.detailsFor('current')),
-              ),
-            ] else
-              reading.when(
-                data: (value) {
-                  if (value == null) {
-                    return AppEmptyState(
-                      icon: Icons.place_outlined,
-                      title: LocaleKeys.weatherNoLocation.tr,
-                      body: LocaleKeys.weatherChooseLocation.tr,
-                      actionLabel: LocaleKeys.weatherChooseLocation.tr,
-                      onAction: () => context.go(AppRoutes.search),
-                    );
-                  }
-                  return _WeatherContent(
-                    value: value,
-                    locationName: locationName,
-                    regionName: regionName,
-                    isCurrentLocation: isCurrentLocation,
-                    onRefreshLocation: () => ref
-                        .read(locationProvider.notifier)
-                        .requestPermissionAndRefresh(),
-                    onOpenDetails: () =>
-                        context.push(AppRoutes.detailsFor('current')),
-                  );
-                },
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Tokens.space16,
-                  ),
-                  child: _ErrorCard(
-                    error: e,
-                    onRetry: () => ref.invalidate(weatherReadingProvider),
-                  ),
-                ),
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: Tokens.space16),
-                  child: AppSkeletonList(),
-                ),
-              ),
-          ],
-        ),
-      ),
+        );
+      },
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(LocaleKeys.navWeather.tr)),
       body: SafeArea(
         child: WeatherBackground(lowPower: lowPower, child: content),
       ),
@@ -140,17 +155,17 @@ class WeatherHomePage extends ConsumerWidget {
     if (coordinate == null) {
       return LocaleKeys.weatherNoLocation.tr;
     }
-    return '${coordinate.lat.toStringAsFixed(3)}, ${coordinate.lon.toStringAsFixed(3)}';
+    final name = state?.name;
+    if (name != null && name.trim().isNotEmpty) {
+      return name;
+    }
+    return LocaleKeys.currentLocation.tr;
   }
 
-  static String? _buildLocationRegion(LocationState? state) {
-    final mode = state?.mode;
-    return switch (mode) {
-      LocationMode.manual => LocaleKeys.locationModeManual.tr,
-      LocationMode.coarse => LocaleKeys.locationModeCoarse.tr,
-      LocationMode.precise => LocaleKeys.locationModePrecise.tr,
-      _ => null,
-    };
+  static String? _buildCoordinates(LocationState? state) {
+    final coordinate = state?.coordinate;
+    if (coordinate == null) return null;
+    return '${coordinate.lat.toStringAsFixed(4)}, ${coordinate.lon.toStringAsFixed(4)}';
   }
 
   static bool _isCurrentLocation(LocationMode? mode) {
@@ -243,7 +258,7 @@ class _WeatherContent extends StatelessWidget {
     required this.value,
     required this.onOpenDetails,
     required this.locationName,
-    this.regionName,
+    required this.coordinates,
     this.isCurrentLocation = false,
     this.onRefreshLocation,
   });
@@ -251,9 +266,11 @@ class _WeatherContent extends StatelessWidget {
   final WeatherReading value;
   final VoidCallback onOpenDetails;
   final String locationName;
-  final String? regionName;
+  final String? coordinates;
   final bool isCurrentLocation;
   final VoidCallback? onRefreshLocation;
+
+  static const double _wideBreakpoint = 900;
 
   @override
   Widget build(BuildContext context) {
@@ -271,89 +288,119 @@ class _WeatherContent extends StatelessWidget {
         : hourlyHorizon;
     final dailyItems = value.snapshot.daily.take(7).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-          child: LocationHeader(
-            locationName: locationName,
-            regionName: regionName,
-            isCurrentLocation: isCurrentLocation,
-            onRefresh: onRefreshLocation,
-          ),
-        ),
-        const SizedBox(height: Tokens.space16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-          child: FocusableActionDetector(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(Tokens.cornerRadius),
-                onTap: onOpenDetails,
-                child: Semantics(
-                  button: true,
-                  label: LocaleKeys.weatherDetails.tr,
-                  child: CurrentWeatherCard(
-                    weather: current,
-                    isStale: value.isStale,
-                    providerName: value.snapshot.providerName,
-                    fetchedAt: value.snapshot.fetchedAt,
+    final header = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
+      child: LocationHeader(
+        locationName: locationName,
+        coordinates: coordinates,
+        isCurrentLocation: isCurrentLocation,
+        onRefresh: onRefreshLocation,
+      ),
+    );
+
+    Widget conditionsColumn({required bool trailingAqi}) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FocusableActionDetector(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(Tokens.cornerRadius),
+                  onTap: onOpenDetails,
+                  child: Semantics(
+                    button: true,
+                    label: LocaleKeys.weatherDetails.tr,
+                    child: CurrentWeatherCard(
+                      weather: current,
+                      isStale: value.isStale,
+                      providerName: value.snapshot.providerName,
+                      fetchedAt: value.snapshot.fetchedAt,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: Tokens.space16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-          child: WeatherMetricsGrid(
-            uvIndex: current.uvIndex,
-            humidity: current.humidityPercent,
-            windSpeed: current.windSpeedMps,
-            windDegrees: current.windDegrees,
-            pressure: current.pressureHpa,
-            visibility: current.visibilityKm,
-            aqi: current.aqi,
-          ),
-        ),
-        if (current.sunrise != null && current.sunset != null) ...[
-          const SizedBox(height: Tokens.space16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-            child: SunriseSunsetCard(
-              sunrise: current.sunrise!,
-              sunset: current.sunset!,
-              currentTime: now,
+            const SizedBox(height: Tokens.space16),
+            WeatherMetricsGrid(
+              uvIndex: current.uvIndex,
+              humidity: current.humidityPercent,
+              windSpeed: current.windSpeedMps,
+              windDegrees: current.windDegrees,
+              pressure: current.pressureHpa,
+              visibility: current.visibilityKm,
+              aqi: current.aqi,
             ),
-          ),
-        ],
-        if (current.aqi != null) ...[
-          const SizedBox(height: Tokens.space16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-            child: AirQualityCard(aqi: current.aqi!),
-          ),
-        ],
-        const SizedBox(height: Tokens.space16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-          child: WindCompass(
-            degrees: current.windDegrees,
-            speedMps: current.windSpeedMps,
-            gustMps: current.windGustMps,
-          ),
-        ),
-        const SizedBox(height: Tokens.space16),
-        HourlyForecastList(items: hourlyItems),
-        const SizedBox(height: Tokens.space16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-          child: DailyForecastTable(days: dailyItems),
-        ),
-      ],
+            if (current.sunrise != null && current.sunset != null) ...[
+              const SizedBox(height: Tokens.space16),
+              SunriseSunsetCard(
+                sunrise: current.sunrise!,
+                sunset: current.sunset!,
+                currentTime: now,
+              ),
+            ],
+            const SizedBox(height: Tokens.space16),
+            WindCompass(
+              degrees: current.windDegrees,
+              speedMps: current.windSpeedMps,
+              gustMps: current.windGustMps,
+            ),
+            if (current.aqi != null && trailingAqi) ...[
+              const SizedBox(height: Tokens.space16),
+              AirQualityCard(aqi: current.aqi!),
+            ],
+          ],
+        );
+
+    Widget forecastColumn() => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            HourlyForecastList(items: hourlyItems),
+            const SizedBox(height: Tokens.space16),
+            DailyForecastTable(days: dailyItems),
+          ],
+        );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= _wideBreakpoint;
+
+        if (!isWide) {
+          // Single-column layout for phones and narrow windows.
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              header,
+              const SizedBox(height: Tokens.space16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
+                child: conditionsColumn(trailingAqi: true),
+              ),
+              const SizedBox(height: Tokens.space16),
+              forecastColumn(),
+            ],
+          );
+        }
+
+        // Two-pane layout for wide windows/desktop.
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            header,
+            const SizedBox(height: Tokens.space16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 5, child: conditionsColumn(trailingAqi: true)),
+                  const SizedBox(width: Tokens.space16),
+                  Expanded(flex: 7, child: forecastColumn()),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

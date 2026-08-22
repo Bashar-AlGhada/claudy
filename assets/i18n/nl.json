@@ -23,7 +23,6 @@
   "weather_feels_like": "Gevoel",
   "weather_humidity": "Vochtigheid",
   "weather_wind": "Wind",
-  "weather_cached": "Gecacht",
   "weather_error": "Er ging iets mis",
   "weather_offline": "Je lijkt offline te zijn",
   "weather_details": "Details",
@@ -33,7 +32,6 @@
   "map_overlay_radar": "Radar",
   "map_overlay_heatmap": "Warmtekaart",
   "map_overlay_wind": "Wind",
-  "map_weather_loading": "Weer laden...",
   "map_weather_error": "Weer kon niet worden geladen",
   "notifications_enabled": "Meldingen ingeschakeld",
   "notifications_channel_alerts": "Weeralarmen",
@@ -68,5 +66,6 @@
   "theme_preset_high_contrast": "Hoog contrast",
   "language_english": "Engels",
   "language_dutch": "Nederlands",
-  "language_arabic": "Arabisch"
+  "language_arabic": "Arabisch",
+  "current_location": "Huidige locatie"
 }

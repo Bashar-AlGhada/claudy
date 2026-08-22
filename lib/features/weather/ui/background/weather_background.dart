@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:claudy/core/time/clock_provider.dart';
 import 'package:claudy/features/weather/ui/background/cloud_animation.dart';
 import 'package:claudy/features/weather/ui/background/fog_animation.dart';
 import 'package:claudy/features/weather/ui/background/rain_animation.dart';
 import 'package:claudy/features/weather/ui/background/snow_animation.dart';
+import 'package:claudy/features/weather/ui/background/starry_night_animation.dart';
 import 'package:claudy/features/weather/ui/background/sun_animation.dart';
 import 'package:claudy/features/weather/ui/background/thunder_animation.dart';
 import 'package:claudy/features/weather/providers/weather_reading_provider.dart';
 import 'package:claudy/features/weather/ui/background/visual_mapping.dart';
 import 'package:claudy/core/theme/tokens.dart';
 
-enum WeatherVisual { clear, clouds, rain, snow, fog, thunder }
+enum WeatherVisual { clear, clearNight, clouds, rain, snow, fog, thunder }
 
 class WeatherBackground extends ConsumerWidget {
   const WeatherBackground({
@@ -26,9 +28,18 @@ class WeatherBackground extends ConsumerWidget {
     final reading = ref.watch(weatherReadingProvider);
     return reading.when(
       data: (value) {
+        final current = value?.snapshot.current;
+        final daytime = isDaytimeNow(
+          now: ref.read(clockProvider).now(),
+          sunrise: current?.sunrise,
+          sunset: current?.sunset,
+        );
         final visual = value == null
             ? WeatherVisual.clouds
-            : mapOpenWeatherCode(value.snapshot.current.conditionCode);
+            : mapOpenWeatherCode(
+                value.snapshot.current.conditionCode,
+                isDaytime: daytime,
+              );
         final colors = _gradientFor(visual, Theme.of(context).colorScheme);
         return _BackgroundLayer(
           colors: colors,
@@ -62,6 +73,12 @@ class WeatherBackground extends ConsumerWidget {
     switch (v) {
       case WeatherVisual.clear:
         return [scheme.primary.withValues(alpha: 0.12), scheme.surface];
+      case WeatherVisual.clearNight:
+        return const [
+          Color(0xFF0B1233),
+          Color(0xFF16204A),
+          Color(0xFF27335F),
+        ];
       case WeatherVisual.clouds:
         return [
           scheme.surfaceContainerHighest.withValues(alpha: 0.18),
@@ -100,9 +117,7 @@ class _BackgroundLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget? animationLayer = lowPower
-        ? null
-        : RepaintBoundary(child: _animationFor(visual));
+    final Widget? animationLayer = lowPower ? null : _animationFor(visual);
     return AnimatedContainer(
       duration: Tokens.motionSlow,
       curve: Tokens.easeOut,
@@ -132,6 +147,8 @@ class _BackgroundLayer extends StatelessWidget {
     switch (visual) {
       case WeatherVisual.clear:
         return SunAnimation(lowPower: lowPower);
+      case WeatherVisual.clearNight:
+        return StarryNightAnimation(lowPower: lowPower);
       case WeatherVisual.clouds:
         return CloudAnimation(lowPower: lowPower);
       case WeatherVisual.rain:

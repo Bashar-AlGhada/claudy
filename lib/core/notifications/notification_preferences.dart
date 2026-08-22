@@ -48,34 +48,60 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
   }
 
   Future<void> setEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyEnabled, enabled);
-    state = AsyncData(await build());
+    await _writeBool(_keyEnabled, enabled);
+    _update((p) => _copy(p, enabled: enabled));
   }
 
   Future<void> setRainSoon(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyRainSoon, enabled);
-    state = AsyncData(await build());
+    await _writeBool(_keyRainSoon, enabled);
+    _update((p) => _copy(p, rainSoon: enabled));
   }
 
   Future<void> setExtremeHeat(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyExtremeHeat, enabled);
-    state = AsyncData(await build());
+    await _writeBool(_keyExtremeHeat, enabled);
+    _update((p) => _copy(p, extremeHeat: enabled));
   }
 
   Future<void> markSent(WeatherAlertType type, DateTime sentAt) async {
     final prefs = await SharedPreferences.getInstance();
     final epoch = sentAt.millisecondsSinceEpoch;
-    switch (type) {
-      case WeatherAlertType.rainSoon:
-        await prefs.setInt(_keyLastSentRainSoon, epoch);
-        break;
-      case WeatherAlertType.extremeHeat:
-        await prefs.setInt(_keyLastSentExtremeHeat, epoch);
-        break;
-    }
-    state = AsyncData(await build());
+    final key = switch (type) {
+      WeatherAlertType.rainSoon => _keyLastSentRainSoon,
+      WeatherAlertType.extremeHeat => _keyLastSentExtremeHeat,
+    };
+    await prefs.setInt(key, epoch);
+    _update(
+      (p) => _copy(
+        p,
+        lastSentEpochMsByType: {...p.lastSentEpochMsByType, type: epoch},
+      ),
+    );
+  }
+
+  static Future<void> _writeBool(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
+  void _update(NotificationPreferences Function(NotificationPreferences) transform) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(transform(current));
+  }
+
+  static NotificationPreferences _copy(
+    NotificationPreferences p, {
+    bool? enabled,
+    bool? rainSoon,
+    bool? extremeHeat,
+    Map<WeatherAlertType, int>? lastSentEpochMsByType,
+  }) {
+    return NotificationPreferences(
+      enabled: enabled ?? p.enabled,
+      rainSoon: rainSoon ?? p.rainSoon,
+      extremeHeat: extremeHeat ?? p.extremeHeat,
+      lastSentEpochMsByType:
+          lastSentEpochMsByType ?? p.lastSentEpochMsByType,
+    );
   }
 }

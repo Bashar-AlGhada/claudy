@@ -1,28 +1,24 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:claudy/core/theme/tokens.dart';
+import 'package:claudy/features/weather/ui/background/particle_animation.dart';
 
-/// Gentle snowfall animation with drifting, rotating snowflakes.
-class SnowAnimation extends StatefulWidget {
-  const SnowAnimation({super.key, this.intensity = 1.0, this.lowPower = false});
-
-  /// Snow intensity from 0.0 (light flurries) to 1.0 (heavy snowfall).
-  final double intensity;
-
-  /// Disables animation when battery saving is active.
-  final bool lowPower;
+/// Snowfall animation with drifting, rotating snowflakes.
+class SnowAnimation extends ParticleAnimation {
+  const SnowAnimation({super.key, super.intensity, super.lowPower});
 
   @override
   State<SnowAnimation> createState() => _SnowAnimationState();
 }
 
-class _SnowAnimationState extends State<SnowAnimation>
-    with SingleTickerProviderStateMixin {
+class _SnowAnimationState extends ParticleAnimationState<SnowAnimation> {
   static const int _minFlakeCount = 16;
   static const int _maxFlakeCount = 60;
-  late AnimationController _controller;
+
   late List<_Snowflake> _flakes;
-  final Random _random = Random();
+
+  @override
+  Duration get cycleDuration => Tokens.weatherAnimationDuration;
 
   int get _flakeCount {
     final clampedIntensity = widget.intensity.clamp(0.0, 1.0);
@@ -33,62 +29,28 @@ class _SnowAnimationState extends State<SnowAnimation>
   }
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: Tokens.weatherAnimationDuration,
-    )..repeat();
-    _initFlakes();
-  }
-
-  void _initFlakes() {
+  void regenerate() {
     _flakes = List.generate(_flakeCount, (_) => _createFlake());
   }
 
   _Snowflake _createFlake() {
     return _Snowflake(
-      x: _random.nextDouble(),
-      y: _random.nextDouble(),
-      size: 2 + _random.nextDouble() * 6,
-      speed: 0.15 + _random.nextDouble() * 0.25,
-      driftAmplitude: 0.02 + _random.nextDouble() * 0.04,
-      driftFrequency: 0.5 + _random.nextDouble() * 1.5,
-      rotation: _random.nextDouble() * pi * 2,
-      rotationSpeed: (_random.nextDouble() - 0.5) * 0.5,
-      opacity: 0.4 + _random.nextDouble() * 0.5,
-      phase: _random.nextDouble() * pi * 2,
+      x: random.nextDouble(),
+      y: random.nextDouble(),
+      size: 2 + random.nextDouble() * 6,
+      speed: 0.15 + random.nextDouble() * 0.25,
+      driftAmplitude: 0.02 + random.nextDouble() * 0.04,
+      driftFrequency: 0.5 + random.nextDouble() * 1.5,
+      rotation: random.nextDouble() * pi * 2,
+      rotationSpeed: (random.nextDouble() - 0.5) * 0.5,
+      opacity: 0.4 + random.nextDouble() * 0.5,
+      phase: random.nextDouble() * pi * 2,
     );
   }
 
   @override
-  void didUpdateWidget(SnowAnimation oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.intensity != widget.intensity) {
-      _initFlakes();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.lowPower) return const SizedBox.expand();
-
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) => CustomPaint(
-          painter: _SnowPainter(flakes: _flakes, progress: _controller.value),
-          size: Size.infinite,
-        ),
-      ),
-    );
-  }
+  CustomPainter createPainter(double progress) =>
+      _SnowPainter(flakes: _flakes, progress: progress);
 }
 
 class _Snowflake {
@@ -130,10 +92,8 @@ class _SnowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (final flake in flakes) {
-      // Vertical movement with wrapping
       final y = (flake.y + progress * flake.speed) % 1.1 - 0.05;
 
-      // Horizontal sine wave drift
       final drift =
           sin(progress * pi * 2 * flake.driftFrequency + flake.phase) *
           flake.driftAmplitude;
@@ -158,7 +118,6 @@ class _SnowPainter extends CustomPainter {
     final paint = _flakePaint
       ..color = Colors.white.withValues(alpha: flake.opacity);
 
-    // Main body - soft circle with blur effect
     final gradient = RadialGradient(
       colors: [
         Colors.white.withValues(alpha: flake.opacity),
@@ -172,7 +131,6 @@ class _SnowPainter extends CustomPainter {
     paint.shader = gradient.createShader(rect);
     canvas.drawCircle(Offset.zero, flake.size, paint);
 
-    // Small arms for larger flakes
     if (flake.size > 4) {
       paint
         ..shader = null

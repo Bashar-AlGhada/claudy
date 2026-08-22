@@ -15,6 +15,7 @@ class LocaleKeys {
   static const weatherUpdatedAt = 'weather_updated_at';
   static const weatherRetry = 'weather_retry';
   static const weatherNoLocation = 'weather_no_location';
+  static const currentLocation = 'current_location';
   static const weatherLocationDenied = 'weather_location_denied';
   static const weatherEnableLocation = 'weather_enable_location';
   static const weatherChooseLocation = 'weather_choose_location';
@@ -23,7 +24,6 @@ class LocaleKeys {
   static const weatherFeelsLike = 'weather_feels_like';
   static const weatherHumidity = 'weather_humidity';
   static const weatherWind = 'weather_wind';
-  static const weatherCached = 'weather_cached';
   static const weatherError = 'weather_error';
   static const weatherOffline = 'weather_offline';
   static const weatherDetails = 'weather_details';
@@ -33,7 +33,6 @@ class LocaleKeys {
   static const mapOverlayRadar = 'map_overlay_radar';
   static const mapOverlayHeatmap = 'map_overlay_heatmap';
   static const mapOverlayWind = 'map_overlay_wind';
-  static const mapWeatherLoading = 'map_weather_loading';
   static const mapWeatherError = 'map_weather_error';
   static const notificationsEnabled = 'notifications_enabled';
   static const notificationsChannelAlerts = 'notifications_channel_alerts';

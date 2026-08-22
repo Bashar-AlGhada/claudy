@@ -23,7 +23,6 @@
   "weather_feels_like": "المحسوس",
   "weather_humidity": "الرطوبة",
   "weather_wind": "الرياح",
-  "weather_cached": "مخزن",
   "weather_error": "حدث خطأ ما",
   "weather_offline": "يبدو أنك غير متصل بالإنترنت",
   "weather_details": "التفاصيل",
@@ -33,7 +32,6 @@
   "map_overlay_radar": "رادار",
   "map_overlay_heatmap": "خريطة حرارية",
   "map_overlay_wind": "رياح",
-  "map_weather_loading": "جارٍ تحميل الطقس...",
   "map_weather_error": "تعذر تحميل الطقس",
   "notifications_enabled": "تم تفعيل الإشعارات",
   "notifications_channel_alerts": "تنبيهات الطقس",
@@ -68,5 +66,6 @@
   "theme_preset_high_contrast": "تباين عالٍ",
   "language_english": "الإنجليزية",
   "language_dutch": "الهولندية",
-  "language_arabic": "العربية"
+  "language_arabic": "العربية",
+  "current_location": "الموقع الحالي"
 }

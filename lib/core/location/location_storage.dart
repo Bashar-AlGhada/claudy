@@ -4,10 +4,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LocationStorage {
   static const keyMode = 'settings.location.mode';
+  static const keyManualName = 'settings.location.manualName';
   static const keyManualLat = 'settings.location.manualLat';
   static const keyManualLon = 'settings.location.manualLon';
   static const keyLastLat = 'settings.location.lastLat';
   static const keyLastLon = 'settings.location.lastLon';
+  static const keyLastPlaceName = 'settings.location.lastKnownPlaceName';
 
   static LocationMode readMode(SharedPreferences prefs) {
     final raw = prefs.getString(keyMode);
@@ -15,6 +17,10 @@ class LocationStorage {
       (m) => m.name == raw,
       orElse: () => LocationMode.precise,
     );
+  }
+
+  static String? readManualName(SharedPreferences prefs) {
+    return prefs.getString(keyManualName);
   }
 
   static GeoCoordinate readManual(SharedPreferences prefs) {
@@ -30,8 +36,28 @@ class LocationStorage {
     return GeoCoordinate(lat: lat, lon: lon);
   }
 
+  static String? readLastPlaceName(SharedPreferences prefs) {
+    return prefs.getString(keyLastPlaceName);
+  }
+
+  static Future<void> writeLastPlaceName(SharedPreferences prefs, String? name) async {
+    if (name == null || name.isEmpty) {
+      await prefs.remove(keyLastPlaceName);
+    } else {
+      await prefs.setString(keyLastPlaceName, name);
+    }
+  }
+
   static Future<void> writeMode(SharedPreferences prefs, LocationMode mode) async {
     await prefs.setString(keyMode, mode.name);
+  }
+
+  static Future<void> writeManualName(SharedPreferences prefs, String? name) async {
+    if (name == null || name.isEmpty) {
+      await prefs.remove(keyManualName);
+    } else {
+      await prefs.setString(keyManualName, name);
+    }
   }
 
   static Future<void> writeManual(SharedPreferences prefs, GeoCoordinate coordinate) async {

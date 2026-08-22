@@ -85,7 +85,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   onPick: (place) async {
                     await ref
                         .read(locationProvider.notifier)
-                        .setManualCoordinate(place.coordinate);
+                        .setManualCoordinate(
+                          place.coordinate,
+                          name: '${place.name}, ${place.country}',
+                        );
                     await ref
                         .read(locationProvider.notifier)
                         .setMode(LocationMode.manual);
@@ -126,7 +129,6 @@ class _SearchResults extends StatelessWidget {
   Widget build(BuildContext context) {
     final trimmed = query.trim();
 
-    // Empty query: show current location tile + empty hint
     if (trimmed.isEmpty) {
       return ListView(
         children: [

@@ -1,50 +1,40 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:claudy/core/theme/tokens.dart';
+import 'package:claudy/features/weather/ui/background/particle_animation.dart';
 
 /// Parallax cloud layers animation with smooth drifting motion.
-class CloudAnimation extends StatefulWidget {
-  const CloudAnimation({super.key, this.density = 1.0, this.lowPower = false});
-
-  /// Cloud density from 0.0 (few clouds) to 1.0 (overcast).
-  final double density;
-
-  /// Disables animation when battery saving is active.
-  final bool lowPower;
+class CloudAnimation extends ParticleAnimation {
+  const CloudAnimation({super.key, super.intensity, super.lowPower});
 
   @override
   State<CloudAnimation> createState() => _CloudAnimationState();
 }
 
-class _CloudAnimationState extends State<CloudAnimation>
-    with SingleTickerProviderStateMixin {
+class _CloudAnimationState extends ParticleAnimationState<CloudAnimation> {
   static const int _maxCloudsPerLayer = 5;
-  late AnimationController _controller;
+
   late List<_CloudLayer> _layers;
-  final Random _random = Random(123);
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: Tokens.weatherAnimationDuration * 3,
-    )..repeat();
-    _initLayers();
-  }
+  Duration get cycleDuration => Tokens.weatherAnimationDuration * 3;
 
-  void _initLayers() {
-    final clampedDensity = widget.density.clamp(0.0, 1.0);
+  @override
+  Random createRandom() => Random(123);
+
+  @override
+  void regenerate() {
+    final clampedIntensity = widget.intensity.clamp(0.0, 1.0);
     _layers = [
-      _createLayer(depth: 0, cloudCount: _boundedCount(3, clampedDensity)),
-      _createLayer(depth: 1, cloudCount: _boundedCount(4, clampedDensity)),
-      _createLayer(depth: 2, cloudCount: _boundedCount(5, clampedDensity)),
+      _createLayer(depth: 0, cloudCount: _boundedCount(3, clampedIntensity)),
+      _createLayer(depth: 1, cloudCount: _boundedCount(4, clampedIntensity)),
+      _createLayer(depth: 2, cloudCount: _boundedCount(5, clampedIntensity)),
     ];
   }
 
-  int _boundedCount(int base, double density) {
-    final scaled = (base * density).ceil();
-    final minimum = density > 0 ? 1 : 0;
+  int _boundedCount(int base, double intensity) {
+    final scaled = (base * intensity).ceil();
+    final minimum = intensity > 0 ? 1 : 0;
     return scaled.clamp(minimum, _maxCloudsPerLayer);
   }
 
@@ -57,11 +47,11 @@ class _CloudAnimationState extends State<CloudAnimation>
       clouds: List.generate(
         cloudCount,
         (_) => _Cloud(
-          x: _random.nextDouble() * 1.5 - 0.25,
-          y: 0.05 + _random.nextDouble() * 0.35,
-          width: (0.25 + _random.nextDouble() * 0.3) * scale,
-          height: (0.06 + _random.nextDouble() * 0.06) * scale,
-          puffSpecs: _createPuffSpecs(3 + _random.nextInt(4)),
+          x: random.nextDouble() * 1.5 - 0.25,
+          y: 0.05 + random.nextDouble() * 0.35,
+          width: (0.25 + random.nextDouble() * 0.3) * scale,
+          height: (0.06 + random.nextDouble() * 0.06) * scale,
+          puffSpecs: _createPuffSpecs(3 + random.nextInt(4)),
         ),
       ),
       speed: speed,
@@ -74,41 +64,16 @@ class _CloudAnimationState extends State<CloudAnimation>
     return List.generate(
       count,
       (_) => _PuffSpec(
-        yOffsetFactor: (_random.nextDouble() - 0.5),
-        widthFactor: 0.8 + _random.nextDouble() * 0.4,
-        heightFactor: 0.7 + _random.nextDouble() * 0.6,
+        yOffsetFactor: (random.nextDouble() - 0.5),
+        widthFactor: 0.8 + random.nextDouble() * 0.4,
+        heightFactor: 0.7 + random.nextDouble() * 0.6,
       ),
     );
   }
 
   @override
-  void didUpdateWidget(CloudAnimation oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.density != widget.density) {
-      _initLayers();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.lowPower) return const SizedBox.expand();
-
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) => CustomPaint(
-          painter: _CloudPainter(layers: _layers, progress: _controller.value),
-          size: Size.infinite,
-        ),
-      ),
-    );
-  }
+  CustomPainter createPainter(double progress) =>
+      _CloudPainter(layers: _layers, progress: progress);
 }
 
 class _CloudLayer {
@@ -153,7 +118,6 @@ class _CloudPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw layers from back to front
     for (final layer in layers.reversed) {
       _drawLayer(canvas, size, layer);
     }
@@ -161,10 +125,8 @@ class _CloudPainter extends CustomPainter {
 
   void _drawLayer(Canvas canvas, Size size, _CloudLayer layer) {
     for (final cloud in layer.clouds) {
-      // Calculate x position with wrapping
       final x = ((cloud.x + progress * layer.speed) % 1.5) - 0.25;
 
-      // Fade at edges
       double edgeFade = 1.0;
       if (x < 0) {
         edgeFade = (x + 0.25) / 0.25;
@@ -197,7 +159,6 @@ class _CloudPainter extends CustomPainter {
   ) {
     final paint = _cloudPaint..color = Colors.white.withValues(alpha: opacity);
 
-    // Draw overlapping ellipses to form cloud shape
     for (var i = 0; i < puffs.length; i++) {
       final puff = puffs[i];
       final puffX =
@@ -216,7 +177,6 @@ class _CloudPainter extends CustomPainter {
       );
     }
 
-    // Central larger puff
     canvas.drawOval(
       Rect.fromCenter(center: center, width: width * 0.5, height: height * 1.2),
       paint,

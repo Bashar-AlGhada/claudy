@@ -1,7 +1,8 @@
 import 'package:claudy/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 
-/// Displays the current location name prominently with optional region subtitle.
+/// Displays the current location name prominently with the raw
+/// coordinates as a smaller subtitle.
 ///
 /// Shows a GPS indicator icon when using device location vs manual selection,
 /// and provides a tap-to-refresh action.
@@ -9,13 +10,15 @@ class LocationHeader extends StatelessWidget {
   const LocationHeader({
     super.key,
     required this.locationName,
-    this.regionName,
+    this.coordinates,
     this.isCurrentLocation = false,
     this.onRefresh,
   });
 
   final String locationName;
-  final String? regionName;
+
+  /// Formatted "lat, lon" label shown below the location name.
+  final String? coordinates;
   final bool isCurrentLocation;
   final VoidCallback? onRefresh;
 
@@ -56,11 +59,12 @@ class LocationHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (regionName != null)
+                if (coordinates != null)
                   Text(
-                    regionName!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.7),
+                    coordinates!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.55),
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

@@ -137,7 +137,6 @@ class _ThunderAnimationState extends State<ThunderAnimation>
 
       points.add(Offset(x, y));
 
-      // Occasionally add a branch
       if (_random.nextDouble() < 0.3 && points.length > 2) {
         final branchStart = points[points.length - 2];
         final branchEnd = Offset(

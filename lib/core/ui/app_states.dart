@@ -17,25 +17,12 @@ class AppEmptyState extends StatelessWidget {
     this.lowPower = false,
   });
 
-  /// Primary icon displayed in the background.
   final IconData? icon;
-
-  /// Main title text (medium weight).
   final String title;
-
-  /// Optional subtitle/body text (lighter weight).
   final String? body;
-
-  /// Primary action button label.
   final String? actionLabel;
-
-  /// Primary action callback.
   final VoidCallback? onAction;
-
-  /// Secondary action button label (text style).
   final String? secondaryActionLabel;
-
-  /// Secondary action callback.
   final VoidCallback? onSecondaryAction;
 
   /// Disables subtle animations when true.
@@ -105,22 +92,13 @@ class AppErrorState extends StatefulWidget {
     this.lowPower = false,
   });
 
-  /// Error icon displayed in the background.
   final IconData? icon;
-
-  /// Error message to display.
   final String message;
-
-  /// Retry button label.
   final String? retryLabel;
 
-  /// Retry callback; shows loading state while executing.
+  /// Retry callback; briefly disables the button while executing.
   final VoidCallback? onRetry;
-
-  /// Optional "Report issue" button label.
   final String? reportLabel;
-
-  /// Report issue callback.
   final VoidCallback? onReport;
 
   /// Disables subtle animations when true.
@@ -137,8 +115,7 @@ class _AppErrorStateState extends State<AppErrorState> {
     if (_isRetrying || widget.onRetry == null) return;
     setState(() => _isRetrying = true);
     widget.onRetry!();
-    // Reset after a brief delay to allow the UI to respond
-    Future.delayed(const Duration(milliseconds: 500), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _isRetrying = false);
     });
   }
@@ -197,41 +174,6 @@ class _AppErrorStateState extends State<AppErrorState> {
   }
 }
 
-/// Consistent loading indicator for use across the app.
-class AppLoadingState extends StatelessWidget {
-  const AppLoadingState({super.key, this.message});
-
-  /// Optional loading message displayed below the indicator.
-  final String? message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(Tokens.space16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            if (message != null) ...[
-              const SizedBox(height: Tokens.space16),
-              Text(
-                message!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// Large semi-transparent background icon with optional pulse animation.
 class _BackgroundIcon extends StatefulWidget {
   const _BackgroundIcon({
@@ -257,7 +199,7 @@ class _BackgroundIconState extends State<_BackgroundIcon> with SingleTickerProvi
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3),
+      duration: Tokens.particleAnimationDuration,
     );
 
     _opacityAnimation = TweenSequence<double>([

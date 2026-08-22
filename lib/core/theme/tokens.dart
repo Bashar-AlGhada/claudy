@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 class Tokens {
   static const double cornerRadius = 18;
-  static const Color seed = Color(0xFF4A7DFF);
-  static const double space2 = 2;
   static const double space4 = 4;
   static const double space8 = 8;
   static const double space12 = 12;
@@ -31,8 +29,4 @@ class Tokens {
   static const Duration weatherAnimationDuration = Duration(seconds: 10);
   static const Duration particleAnimationDuration = Duration(seconds: 3);
   static const Duration lightningFlashDuration = Duration(milliseconds: 150);
-
-  // Glassmorphism/Transparency
-  static const double glassOpacity = 0.1;
-  static const double glassBlur = 10.0;
 }

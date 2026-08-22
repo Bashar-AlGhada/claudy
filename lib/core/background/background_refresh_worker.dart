@@ -2,6 +2,7 @@ import 'package:claudy/core/background/background_refresh_settings.dart';
 import 'package:claudy/core/i18n/i18n_loader.dart';
 import 'package:claudy/core/i18n/i18n_store.dart';
 import 'package:claudy/core/i18n/locale_keys.dart';
+import 'package:claudy/core/i18n/locale_provider.dart';
 import 'package:claudy/core/location/location_storage.dart';
 import 'package:claudy/core/logging/app_logger.dart';
 import 'package:claudy/core/notifications/notification_preferences.dart';
@@ -113,10 +114,10 @@ class BackgroundRefreshWorker {
 
   static Future<Locale> _readStoredLocale() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('settings.locale');
+    final raw = prefs.getString(LocaleNotifier.storageKey);
     if (raw == null || raw.isEmpty) return const Locale('en');
     final parts = raw.split('-');
-    if (parts.isEmpty || parts.first.isEmpty) return const Locale('en');
+    if (parts.first.isEmpty) return const Locale('en');
     if (parts.length == 1) return Locale(parts.first);
     return Locale(parts.first, parts[1]);
   }
