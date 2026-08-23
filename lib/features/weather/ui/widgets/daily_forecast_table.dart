@@ -1,7 +1,9 @@
+import 'package:claudy/core/i18n/locale_keys.dart';
 import 'package:claudy/core/theme/tokens.dart';
 import 'package:claudy/features/weather/domain/models/daily_weather.dart';
 import 'package:claudy/features/weather/ui/widgets/weather_condition_icon.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 /// Enhanced 7-day forecast displayed as a detailed table.
 class DailyForecastTable extends StatelessWidget {
@@ -64,7 +66,7 @@ class _TableHeader extends StatelessWidget {
         children: [
           Expanded(
             flex: 3,
-            child: Text('Day', style: headerStyle),
+            child: Text(LocaleKeys.forecastDay.tr, style: headerStyle),
           ),
           Expanded(
             flex: 1,
@@ -72,15 +74,15 @@ class _TableHeader extends StatelessWidget {
           ),
           Expanded(
             flex: 2,
-            child: Center(child: Text('High/Low', style: headerStyle)),
+            child: Center(child: Text(LocaleKeys.forecastHighLow.tr, style: headerStyle)),
           ),
           Expanded(
             flex: 2,
-            child: Center(child: Text('Precip', style: headerStyle)),
+            child: Center(child: Text(LocaleKeys.forecastPrecip.tr, style: headerStyle)),
           ),
           Expanded(
             flex: 2,
-            child: Center(child: Text('Wind', style: headerStyle)),
+            child: Center(child: Text(LocaleKeys.weatherWind.tr, style: headerStyle)),
           ),
         ],
       ),
@@ -291,14 +293,14 @@ class _ExpandedDetails extends StatelessWidget {
         children: [
           _DetailItem(
             icon: Icons.wb_sunny_outlined,
-            label: 'UV Index',
+            label: LocaleKeys.metricUvIndex.tr,
             value: item.uvIndex.toString(),
             textTheme: textTheme,
             colorScheme: colorScheme,
           ),
           _DetailItem(
             icon: Icons.water_drop_outlined,
-            label: 'Precipitation',
+            label: LocaleKeys.forecastPrecipitation.tr,
             value: '${item.precipMm.toStringAsFixed(1)} mm',
             textTheme: textTheme,
             colorScheme: colorScheme,
@@ -306,7 +308,7 @@ class _ExpandedDetails extends StatelessWidget {
           if (sunriseStr != null)
             _DetailItem(
               icon: Icons.wb_twilight,
-              label: 'Sunrise',
+              label: LocaleKeys.labelSunrise.tr,
               value: sunriseStr,
               textTheme: textTheme,
               colorScheme: colorScheme,
@@ -314,7 +316,7 @@ class _ExpandedDetails extends StatelessWidget {
           if (sunsetStr != null)
             _DetailItem(
               icon: Icons.nights_stay_outlined,
-              label: 'Sunset',
+              label: LocaleKeys.labelSunset.tr,
               value: sunsetStr,
               textTheme: textTheme,
               colorScheme: colorScheme,

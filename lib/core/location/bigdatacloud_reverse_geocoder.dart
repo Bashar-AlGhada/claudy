@@ -33,6 +33,11 @@ class BigDataCloudReverseGeocoder implements ReverseGeocoder {
           validateStatus: (status) => status != null && status < 500,
         ),
       );
+      final status = response.statusCode ?? 0;
+      if (status >= 400) {
+        AppLogger.warn('Reverse geocoding failed with HTTP $status');
+        return null;
+      }
       return parseName(response.data);
     } catch (e, s) {
       AppLogger.warn(

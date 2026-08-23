@@ -1,9 +1,11 @@
+import 'package:claudy/core/config/api_key_store.dart';
 import 'package:claudy/core/i18n/locale_keys.dart';
 import 'package:claudy/core/i18n/locale_provider.dart';
 import 'package:claudy/core/location/location_mode.dart';
 import 'package:claudy/core/location/location_provider.dart';
 import 'package:claudy/core/notifications/notification_preferences.dart';
 import 'package:claudy/core/notifications/notification_provider.dart';
+import 'package:claudy/features/map/data/rainviewer_service.dart';
 import 'package:claudy/core/routing/app_routes.dart';
 import 'package:claudy/core/theme/theme_provider.dart';
 import 'package:claudy/core/diagnostics/diagnostics_service.dart';
@@ -17,6 +19,19 @@ import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:claudy/core/background/background_scheduler.dart';
 import 'package:claudy/core/background/background_refresh_settings.dart';
+import 'package:claudy/features/weather/ui/background/weather_background.dart';
+
+final backgroundDebugUnlockProvider =
+    NotifierProvider<_DebugUnlockNotifier, int>(_DebugUnlockNotifier.new);
+
+class _DebugUnlockNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void tap() => state = (state + 1).clamp(0, 5);
+
+  void reset() => state = 0;
+}
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -38,6 +53,7 @@ class SettingsPage extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(vertical: Tokens.space16),
             children: [
+              const _OpenWeatherKeyCard(),
               if (theme != null)
                 ListTile(
                   title: Text(LocaleKeys.settingsTheme.tr),
@@ -77,7 +93,11 @@ class SettingsPage extends ConsumerWidget {
               ],
               ListTile(
                 title: Text(LocaleKeys.settingsBackgroundRefresh.tr),
-                subtitle: Text(backgroundRefreshEnabled ? LocaleKeys.settingsEnable.tr : LocaleKeys.settingsDisable.tr),
+                subtitle: Text(
+                  backgroundRefreshEnabled
+                      ? LocaleKeys.settingsStatusEnabled.tr
+                      : LocaleKeys.settingsStatusDisabled.tr,
+                ),
                 trailing: Wrap(
                   spacing: Tokens.space8,
                   children: [
@@ -89,7 +109,7 @@ class SettingsPage extends ConsumerWidget {
                               if (context.mounted) {
                                 final message = BackgroundScheduler.isSupportedPlatform
                                     ? LocaleKeys.settingsDisable.tr
-                                    : '${LocaleKeys.settingsDisable.tr} (Android/iOS only)';
+                                    : '${LocaleKeys.settingsDisable.tr} ${LocaleKeys.settingsPlatformUnsupported.tr}';
                                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
                               }
                             }
@@ -107,7 +127,7 @@ class SettingsPage extends ConsumerWidget {
                               if (context.mounted) {
                                 final message = BackgroundScheduler.isSupportedPlatform
                                     ? LocaleKeys.settingsEnable.tr
-                                    : '${LocaleKeys.settingsEnable.tr} (Android/iOS only)';
+                                    : '${LocaleKeys.settingsEnable.tr} ${LocaleKeys.settingsPlatformUnsupported.tr}';
                                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
                               }
                             },
@@ -120,10 +140,14 @@ class SettingsPage extends ConsumerWidget {
                 title: Text(LocaleKeys.settingsLocationMode.tr),
                 trailing: DropdownButton<LocationMode>(
                   value: locationMode,
-                  onChanged: (next) {
-                    if (next == null) return;
-                    ref.read(locationProvider.notifier).setMode(next);
-                  },
+                  // Disabled while loading so a transient default is not
+                  // presented as the user's actual choice.
+                  onChanged: location == null
+                      ? null
+                      : (next) {
+                          if (next == null) return;
+                          ref.read(locationProvider.notifier).setMode(next);
+                        },
                   items: [
                     DropdownMenuItem(value: LocationMode.precise, child: Text(LocaleKeys.locationModePrecise.tr)),
                     DropdownMenuItem(value: LocationMode.coarse, child: Text(LocaleKeys.locationModeCoarse.tr)),
@@ -155,8 +179,16 @@ class SettingsPage extends ConsumerWidget {
               const SizedBox(height: Tokens.space8),
               const Divider(height: 1),
               const SizedBox(height: Tokens.space8),
+              if (ref.watch(backgroundDebugUnlockProvider) >= 5)
+                const _BackgroundPreviewCard(),
+              if (ref.watch(backgroundDebugUnlockProvider) >= 5)
+                const SizedBox(height: Tokens.space8),
               ListTile(
                 title: Text(LocaleKeys.settingsDiagnostics.tr),
+                onTap: () {
+                  // Hidden: 5 taps on this row reveal the background preview.
+                  ref.read(backgroundDebugUnlockProvider.notifier).tap();
+                },
                 trailing: FilledButton(
                   onPressed: () async {
                     final svc = DiagnosticsService();
@@ -181,6 +213,248 @@ class SettingsPage extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OpenWeatherKeyCard extends ConsumerStatefulWidget {
+  const _OpenWeatherKeyCard();
+
+  @override
+  ConsumerState<_OpenWeatherKeyCard> createState() => _OpenWeatherKeyCardState();
+}
+
+class _OpenWeatherKeyCardState extends ConsumerState<_OpenWeatherKeyCard> {
+  final _controller = TextEditingController();
+  bool _obscured = true;
+  bool _busy = false;
+  bool _hasStoredKey = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() => setState(() {}));
+    _refreshStored();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refreshStored() async {
+    final hasKey = await ref.read(apiKeyStoreProvider).hasUserKey();
+    if (!mounted) return;
+    setState(() => _hasStoredKey = hasKey);
+  }
+
+  void _invalidateDependents() {
+    ref.invalidate(openWeatherApiKeyProvider);
+    // Drops cached layer probes/zoom caps so the map re-evaluates the new key.
+    ref.invalidate(rainViewerProvider);
+  }
+
+  void _show(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
+    );
+  }
+
+  Future<void> _save() async {
+    final key = _controller.text.trim();
+    if (key.isEmpty || _busy) return;
+    setState(() => _busy = true);
+    try {
+      final store = ref.read(apiKeyStoreProvider);
+      final result = await store.validate(key);
+      if (!mounted) return;
+      switch (result) {
+        case ApiKeyValidation.valid:
+          await store.save(key);
+          _controller.clear();
+          _invalidateDependents();
+          await _refreshStored();
+          _show(LocaleKeys.settingsOpenweatherSaved.tr);
+        case ApiKeyValidation.invalid:
+          _show(LocaleKeys.settingsOpenweatherInvalid.tr);
+        case ApiKeyValidation.networkError:
+          _show(LocaleKeys.weatherOffline.tr);
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _clear() async {
+    if (_busy || !_hasStoredKey) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(apiKeyStoreProvider).clear();
+      _invalidateDependents();
+      await _refreshStored();
+      if (!mounted) return;
+      _show(LocaleKeys.settingsOpenweatherRemoved.tr);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = ref.watch(openWeatherApiKeyProvider).asData?.value ?? '';
+    final subtitle = _hasStoredKey
+        ? '${LocaleKeys.settingsOpenweatherStored.tr} (\u2022\u2022\u2022\u2022)'
+        : resolved.isNotEmpty
+            ? LocaleKeys.settingsOpenweatherBuildIn.tr
+            : LocaleKeys.settingsOpenweatherHint.tr;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Tokens.space12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.key_outlined, size: 20),
+                const SizedBox(width: Tokens.space8),
+                Expanded(
+                  child: Text(
+                    LocaleKeys.settingsOpenweatherTitle.tr,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: Tokens.space4),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: Tokens.space8),
+            TextField(
+              controller: _controller,
+              obscureText: _obscured,
+              autocorrect: false,
+              enableSuggestions: false,
+              decoration: InputDecoration(
+                hintText: LocaleKeys.settingsOpenweatherHint.tr,
+                border: const OutlineInputBorder(),
+                isDense: true,
+                suffixIcon: IconButton(
+                  icon: Icon(_obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscured = !_obscured),
+                ),
+              ),
+            ),
+            const SizedBox(height: Tokens.space8),
+            Row(
+              children: [
+                FilledButton.icon(
+                  onPressed: (_busy || _controller.text.trim().isEmpty) ? null : _save,
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check, size: 16),
+                  label: Text(
+                    _busy
+                        ? LocaleKeys.settingsOpenweatherChecking.tr
+                        : LocaleKeys.settingsOpenweatherSave.tr,
+                  ),
+                ),
+                if (_hasStoredKey)
+                  OutlinedButton(
+                    onPressed: _busy ? null : _clear,
+                    child: Text(LocaleKeys.settingsOpenweatherClear.tr),
+                  ),
+              ],
+            ),
+            const SizedBox(height: Tokens.space4),
+            Text(
+              LocaleKeys.settingsOpenweatherGetKey.tr,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BackgroundPreviewCard extends ConsumerWidget {
+  const _BackgroundPreviewCard();
+
+  static const _scenarios = <(String, BackgroundScenario)>[
+    ('Auto', BackgroundScenario.auto),
+    ('Clear day', BackgroundScenario.clearDay),
+    ('Clear night', BackgroundScenario.clearNight),
+    ('Clouds day', BackgroundScenario.cloudsDay),
+    ('Clouds night', BackgroundScenario.cloudsNight),
+    ('Rain day', BackgroundScenario.rainDay),
+    ('Rain night', BackgroundScenario.rainNight),
+    ('Snow', BackgroundScenario.snowDay),
+    ('Fog', BackgroundScenario.fogDay),
+    ('Thunder', BackgroundScenario.thunder),
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(backgroundPreviewProvider);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(Tokens.space12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.bug_report_outlined, size: 18),
+                const SizedBox(width: Tokens.space8),
+                Text(
+                  'Background preview',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: Tokens.space8),
+            SizedBox(
+              height: 120,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(Tokens.cornerRadius),
+                child: WeatherBackground(
+                  lowPower: false,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+            const SizedBox(height: Tokens.space8),
+            Wrap(
+              spacing: Tokens.space8,
+              runSpacing: Tokens.space4,
+              children: [
+                for (final (label, scenario) in _scenarios)
+                  ChoiceChip(
+                    label: Text(label),
+                    selected: active == scenario,
+                    onSelected: (_) => ref
+                        .read(backgroundPreviewProvider.notifier)
+                        .set(scenario),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

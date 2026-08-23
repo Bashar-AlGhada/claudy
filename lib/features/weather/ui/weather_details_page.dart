@@ -63,20 +63,20 @@ class WeatherDetailsPage extends ConsumerWidget {
                     value: '${current.windSpeedMps.toStringAsFixed(1)} m/s',
                   ),
                   _MetricRow(
-                    label: 'Wind Gust',
+                    label: LocaleKeys.metricWindGust.tr,
                     value: '${current.windGustMps.toStringAsFixed(1)} m/s',
                   ),
-                  _MetricRow(label: 'UV Index', value: '${current.uvIndex}'),
+                  _MetricRow(label: LocaleKeys.metricUvIndex.tr, value: '${current.uvIndex}'),
                   _MetricRow(
-                    label: 'Pressure',
+                    label: LocaleKeys.metricPressure.tr,
                     value: '${current.pressureHpa.round()} hPa',
                   ),
                   _MetricRow(
-                    label: 'Visibility',
+                    label: LocaleKeys.metricVisibility.tr,
                     value: '${current.visibilityKm.toStringAsFixed(1)} km',
                   ),
-                  _MetricRow(label: 'Sunrise', value: sunrise),
-                  _MetricRow(label: 'Sunset', value: sunset),
+                  _MetricRow(label: LocaleKeys.labelSunrise.tr, value: sunrise),
+                  _MetricRow(label: LocaleKeys.labelSunset.tr, value: sunset),
                   const SizedBox(height: Tokens.space16),
                   Text(
                     LocaleKeys.weatherHourly.tr,

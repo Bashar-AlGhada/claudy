@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:claudy/features/weather/data/open_meteo/open_meteo_provider.dart';
 import 'package:claudy/features/weather/ui/background/weather_background.dart';
 import 'package:claudy/features/weather/ui/background/visual_mapping.dart';
 
@@ -11,6 +12,21 @@ void main() {
     expect(mapOpenWeatherCode(711), WeatherVisual.fog);
     expect(mapOpenWeatherCode(201), WeatherVisual.thunder);
     expect(mapOpenWeatherCode(9999), WeatherVisual.clouds);
+  });
+
+  test('maps WMO codes into the OpenWeather space', () {
+    // Clear and mainly-clear both read as clear so a visually bright sky
+    // is not painted with full cloud puffs.
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(0), 800);
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(1), 800);
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(2), 801);
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(3), 804);
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(45), 741);
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(61), 500);
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(71), 600);
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(95), 201);
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(96), 202);
+    expect(OpenMeteoProvider.toOpenWeatherConditionCode(999), 804);
   });
 
   test('clear codes switch to night visual after sunset', () {

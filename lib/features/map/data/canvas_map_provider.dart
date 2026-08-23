@@ -8,7 +8,7 @@ class CanvasMapProvider implements MapProvider {
   String get name => 'Canvas';
 
   @override
-  Widget build({required Set<MapOverlay> overlays, required GeoCoordinate? marker, required ValueChanged<GeoCoordinate> onTap}) {
+  Widget build({required Set<MapOverlay> overlays, required GeoCoordinate? marker, GeoCoordinate? userLocation, required ValueChanged<GeoCoordinate> onTap}) {
     return _CanvasMapView(overlays: overlays, marker: marker, onTap: onTap);
   }
 }

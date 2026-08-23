@@ -12,7 +12,6 @@ class SnowAnimation extends ParticleAnimation {
 }
 
 class _SnowAnimationState extends ParticleAnimationState<SnowAnimation> {
-  static const int _minFlakeCount = 16;
   static const int _maxFlakeCount = 60;
 
   late List<_Snowflake> _flakes;
@@ -22,11 +21,11 @@ class _SnowAnimationState extends ParticleAnimationState<SnowAnimation> {
 
   int get _flakeCount {
     final clampedIntensity = widget.intensity.clamp(0.0, 1.0);
-    return (40 + (20 * clampedIntensity).toInt()).clamp(
-      _minFlakeCount,
-      _maxFlakeCount,
-    );
+    return (40 + (20 * clampedIntensity).toInt()).clamp(40, _maxFlakeCount);
   }
+
+  @override
+  Random createRandom() => Random(202);
 
   @override
   void regenerate() {
@@ -86,6 +85,27 @@ class _SnowPainter extends CustomPainter {
     ..strokeWidth = 1.0
     ..style = PaintingStyle.fill;
 
+  /// Radial-gradient discs are geometry-identical per flake size, so shaders
+  /// are cached instead of being rebuilt for every flake on every frame.
+  static final Map<int, Shader> _glowShaders = {};
+
+  static Shader _glowShaderFor(int sizeBucket, double opacity) {
+    return _glowShaders.putIfAbsent(sizeBucket * 100 + (opacity * 10).round(), () {
+      final radius = sizeBucket.toDouble();
+      final gradient = RadialGradient(
+        colors: [
+          Colors.white.withValues(alpha: opacity),
+          Colors.white.withValues(alpha: opacity * 0.3),
+          Colors.white.withValues(alpha: 0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      );
+      return gradient.createShader(
+        Rect.fromCircle(center: Offset.zero, radius: radius),
+      );
+    });
+  }
+
   final List<_Snowflake> flakes;
   final double progress;
 
@@ -116,19 +136,10 @@ class _SnowPainter extends CustomPainter {
 
   void _drawSnowflake(Canvas canvas, _Snowflake flake) {
     final paint = _flakePaint
-      ..color = Colors.white.withValues(alpha: flake.opacity);
-
-    final gradient = RadialGradient(
-      colors: [
-        Colors.white.withValues(alpha: flake.opacity),
-        Colors.white.withValues(alpha: flake.opacity * 0.3),
-        Colors.white.withValues(alpha: 0),
-      ],
-      stops: const [0.0, 0.5, 1.0],
-    );
-
-    final rect = Rect.fromCircle(center: Offset.zero, radius: flake.size);
-    paint.shader = gradient.createShader(rect);
+      ..style = PaintingStyle.fill
+      ..shader =
+          _glowShaderFor(flake.size.round(), flake.opacity)
+      ..strokeWidth = 1.0;
     canvas.drawCircle(Offset.zero, flake.size, paint);
 
     if (flake.size > 4) {

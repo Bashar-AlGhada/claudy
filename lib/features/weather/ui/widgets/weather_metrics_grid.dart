@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:claudy/core/i18n/locale_keys.dart';
 import 'package:claudy/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 /// A 2x3 grid displaying current weather metrics.
 class WeatherMetricsGrid extends StatelessWidget {
@@ -32,34 +34,34 @@ class WeatherMetricsGrid extends StatelessWidget {
       _MetricData(
         icon: Icons.wb_sunny_outlined,
         value: uvIndex.toString(),
-        label: 'UV Index',
+        label: LocaleKeys.metricUvIndex.tr,
         color: _uvColor(uvIndex),
       ),
       _MetricData(
         icon: Icons.water_drop_outlined,
         value: '$humidity%',
-        label: 'Humidity',
+        label: LocaleKeys.weatherHumidity.tr,
       ),
       _MetricData(
         icon: Icons.air,
         value: '${windSpeed.toStringAsFixed(1)} m/s',
-        label: 'Wind',
+        label: LocaleKeys.weatherWind.tr,
       ),
       _MetricData(
         icon: Icons.compress,
         value: '${pressure.round()} hPa',
-        label: 'Pressure',
+        label: LocaleKeys.metricPressure.tr,
       ),
       _MetricData(
         icon: Icons.visibility_outlined,
         value: '${visibility.toStringAsFixed(1)} km',
-        label: 'Visibility',
+        label: LocaleKeys.metricVisibility.tr,
       ),
       if (aqi != null)
         _MetricData(
           icon: Icons.eco_outlined,
           value: aqi.toString(),
-          label: 'AQI',
+          label: LocaleKeys.metricAqi.tr,
           color: _aqiColor(aqi!),
         ),
     ];

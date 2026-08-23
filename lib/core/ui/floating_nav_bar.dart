@@ -47,9 +47,9 @@ class FloatingNavBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(Tokens.floatingNavBarBorderRadius),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.15),
+            color: colorScheme.shadow.withValues(alpha: 0.06),
             blurRadius: Tokens.floatingNavBarElevation * 2,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -97,7 +97,7 @@ class _FloatingNavBarItemWidget extends StatelessWidget {
         child: AnimatedContainer(
           duration: Tokens.motionMedium,
           curve: Tokens.easeOut,
-          padding: const EdgeInsets.symmetric(vertical: Tokens.space8),
+          padding: const EdgeInsets.symmetric(vertical: Tokens.space4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,

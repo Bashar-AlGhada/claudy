@@ -15,7 +15,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BackgroundRefreshWorker {
@@ -42,8 +41,8 @@ class BackgroundRefreshWorker {
       final repo = container.read(weatherRepositoryProvider);
       final result = await repo.getWeather(
         coordinate,
-        hours: 16,
-        days: 5,
+        hours: _workerFetchHours,
+        days: _workerFetchDays,
         forceRefresh: true,
       );
 
@@ -65,6 +64,12 @@ class BackgroundRefreshWorker {
     return true;
   }
 
+  /// Minimum gap between two notifications of the same alert type.
+  static const Duration _alertDedupeWindow = Duration(hours: 6);
+
+  static const _workerFetchHours = 16;
+  static const _workerFetchDays = 5;
+
   static Future<void> _maybeNotify(ProviderContainer container, WeatherReading reading) async {
     final prefs = await container.read(notificationPreferencesProvider.future);
     final now = DateTime.now();
@@ -75,23 +80,33 @@ class BackgroundRefreshWorker {
     final lastSent = prefs.lastSentEpochMsByType[type];
     if (lastSent != null) {
       final last = DateTime.fromMillisecondsSinceEpoch(lastSent);
-      if (now.difference(last) < const Duration(hours: 6)) return;
+      if (now.difference(last) < _alertDedupeWindow) return;
     }
 
     await _ensureI18nReady();
+    if ((I18nStore.keys['en'] ?? const {}).isEmpty) {
+      AppLogger.warn('Background refresh: translations unavailable; skipping notification');
+      return;
+    }
     final locale = await _readStoredLocale();
-    Get.updateLocale(locale);
+
+    // Resolve translations directly from the store for the stored locale;
+    // mutating global GetX state from a headless worker has no UI to follow.
+    String tr(String key) =>
+        I18nStore.keys[locale.languageCode]?[key] ??
+        I18nStore.keys['en']?[key] ??
+        key;
 
     final notification = switch (type) {
       WeatherAlertType.rainSoon => WeatherAlertNotification(
-          id: 1001,
-          title: LocaleKeys.notificationsRainSoonTitle.tr,
-          body: LocaleKeys.notificationsRainSoonBody.tr,
+          id: WeatherAlertNotification.rainSoonId,
+          title: tr(LocaleKeys.notificationsRainSoonTitle),
+          body: tr(LocaleKeys.notificationsRainSoonBody),
         ),
       WeatherAlertType.extremeHeat => WeatherAlertNotification(
-          id: 1002,
-          title: LocaleKeys.notificationsExtremeHeatTitle.tr,
-          body: LocaleKeys.notificationsExtremeHeatBody.tr,
+          id: WeatherAlertNotification.extremeHeatId,
+          title: tr(LocaleKeys.notificationsExtremeHeatTitle),
+          body: tr(LocaleKeys.notificationsExtremeHeatBody),
         ),
     };
 
@@ -105,7 +120,6 @@ class BackgroundRefreshWorker {
     try {
       if ((I18nStore.keys['en'] ?? const {}).isEmpty) {
         await I18nLoader.load();
-        Get.addTranslations(I18nStore.keys);
       }
     } catch (e, st) {
       AppLogger.warn('Background refresh: i18n init failed', error: e, stackTrace: st);
@@ -114,11 +128,7 @@ class BackgroundRefreshWorker {
 
   static Future<Locale> _readStoredLocale() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(LocaleNotifier.storageKey);
-    if (raw == null || raw.isEmpty) return const Locale('en');
-    final parts = raw.split('-');
-    if (parts.first.isEmpty) return const Locale('en');
-    if (parts.length == 1) return Locale(parts.first);
-    return Locale(parts.first, parts[1]);
+    final locale = LocaleNotifier.tryParse(prefs.getString(LocaleNotifier.storageKey));
+    return locale ?? const Locale('en');
   }
 }

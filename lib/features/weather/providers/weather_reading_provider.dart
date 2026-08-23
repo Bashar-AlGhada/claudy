@@ -20,8 +20,16 @@ class WeatherReadingNotifier extends AsyncNotifier<WeatherReading?> {
   static const _hours = 24;
   static const _days = 7;
 
+  /// Monotonic token so a late response from a superseded request
+  /// (background revalidation vs pull-to-refresh) never overwrites
+  /// newer state.
+  int _requestSeq = 0;
+
   @override
   Future<WeatherReading?> build() async {
+    // Invalidate fetches from a previous provider generation so a late
+    // response for an old coordinate can never overwrite this build's state.
+    _requestSeq++;
     final location = await ref.watch(locationProvider.future);
     final coordinate = location.coordinate;
     if (coordinate == null) return null;
@@ -42,9 +50,10 @@ class WeatherReadingNotifier extends AsyncNotifier<WeatherReading?> {
     }
 
     final isStale = now.difference(cached.fetchedAt) > weatherSnapshotTtl;
-    if (isStale) {
-      unawaited(_revalidate(coordinate));
-    }
+    // Always revalidate in the background on (re)build so the UI converges on
+    // reality within seconds instead of serving a snapshot that can be up to
+    // a full TTL old - the "shows cloudy while the sky is clear" report.
+    unawaited(_revalidate(coordinate));
     return WeatherReading(
       snapshot: cached,
       isStale: isStale,
@@ -54,13 +63,17 @@ class WeatherReadingNotifier extends AsyncNotifier<WeatherReading?> {
 
   Future<void> refresh({bool forceRefresh = true}) async {
     final location = await ref.read(locationProvider.future);
+    if (!ref.mounted) return;
     final coordinate = location.coordinate;
     if (coordinate == null) {
       state = const AsyncData(null);
       return;
     }
 
-    state = await _fetch(coordinate, forceRefresh: forceRefresh);
+    final request = ++_requestSeq;
+    final next = await _fetch(coordinate, forceRefresh: forceRefresh);
+    if (!ref.mounted || request != _requestSeq) return;
+    state = next;
   }
 
   Future<AsyncValue<WeatherReading?>> _fetch(
@@ -79,8 +92,9 @@ class WeatherReadingNotifier extends AsyncNotifier<WeatherReading?> {
   }
 
   Future<void> _revalidate(GeoCoordinate coordinate) async {
+    final request = ++_requestSeq;
     final next = await _fetch(coordinate, forceRefresh: true);
-    if (!ref.mounted) return;
+    if (!ref.mounted || request != _requestSeq) return;
     if (next is AsyncError<WeatherReading?>) {
       AppLogger.warn(
         'Weather revalidation failed; keeping cached data',

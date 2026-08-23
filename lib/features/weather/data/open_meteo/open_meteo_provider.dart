@@ -30,6 +30,10 @@ class OpenMeteoProvider implements WeatherProvider {
         'longitude': coordinate.lon,
         'current':
             'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,surface_pressure,visibility,wind_gusts_10m,wind_direction_10m,uv_index,is_day',
+        // Same-request daily payload so today's solar times ride along;
+        // without them the day/night background cannot be decided.
+        'daily': 'sunrise,sunset',
+        'forecast_days': 1,
         'timezone': 'auto',
       },
     );
@@ -44,7 +48,9 @@ class OpenMeteoProvider implements WeatherProvider {
       throw const MappingException('Invalid Open-Meteo current payload');
     }
 
-    final observedAt = DateTime.tryParse(current['time']?.toString() ?? '');
+    final utcOffsetSeconds = _safeNumToInt(body['utc_offset_seconds']) ?? 0;
+    final observedAt =
+        _parseLocationInstant(current['time'], utcOffsetSeconds);
     final temperature = _numToDouble(current['temperature_2m']);
     final feelsLike = _numToDouble(current['apparent_temperature']);
     final humidity = _numToInt(current['relative_humidity_2m']);
@@ -60,19 +66,33 @@ class OpenMeteoProvider implements WeatherProvider {
       throw const MappingException('Invalid Open-Meteo current.time');
     }
 
+    final daily = body['daily'];
+    DateTime? sunrise;
+    DateTime? sunset;
+    if (daily is Map) {
+      final sunrises = daily['sunrise'];
+      final sunsets = daily['sunset'];
+      sunrise = sunrises is List
+          ? _parseLocationInstant(_valueAtOrNull(sunrises, 0), utcOffsetSeconds)
+          : null;
+      sunset = sunsets is List
+          ? _parseLocationInstant(_valueAtOrNull(sunsets, 0), utcOffsetSeconds)
+          : null;
+    }
+
     return CurrentWeather(
       temperatureC: temperature,
       feelsLikeC: feelsLike,
       humidityPercent: humidity.clamp(0, 100),
       windSpeedMps: windSpeed,
-      conditionCode: _toOpenWeatherConditionCode(weatherCode),
+      conditionCode: toOpenWeatherConditionCode(weatherCode),
       observedAt: observedAt,
       uvIndex: uvIndex,
       aqi: null,
       visibilityKm: visibilityKm < 0 ? 0 : visibilityKm,
       pressureHpa: pressure < 0 ? 0 : pressure,
-      sunrise: null,
-      sunset: null,
+      sunrise: sunrise,
+      sunset: sunset,
       windGustMps: windGust < 0 ? 0 : windGust,
       windDegrees: windDegrees,
       description: null,
@@ -117,10 +137,12 @@ class OpenMeteoProvider implements WeatherProvider {
       throw const MappingException('Invalid Open-Meteo hourly arrays');
     }
 
+    final utcOffsetSeconds = _safeNumToInt(body['utc_offset_seconds']) ?? 0;
     final count = [times.length, temperatures.length, precip.length, codes.length].reduce((a, b) => a < b ? a : b);
     final result = <HourlyWeather>[];
     for (var i = 0; i < count; i++) {
-      final time = DateTime.tryParse(times[i]?.toString() ?? '');
+      final time =
+          _parseLocationInstant(times[i], utcOffsetSeconds);
       if (time == null) continue;
       final temperature = _safeNumToDouble(temperatures[i]);
       final precipPercent = _safeNumToInt(precip[i]);
@@ -140,7 +162,7 @@ class OpenMeteoProvider implements WeatherProvider {
           time: time,
           temperatureC: temperature,
           precipProbabilityPercent: precipPercent.clamp(0, 100),
-          conditionCode: _toOpenWeatherConditionCode(weatherCode),
+          conditionCode: toOpenWeatherConditionCode(weatherCode),
           windSpeedMps: windSpeed < 0 ? 0.0 : windSpeed,
           feelsLikeC: feelsLike,
           uvIndex: uvIndex,
@@ -220,7 +242,7 @@ class OpenMeteoProvider implements WeatherProvider {
           date: DateTime(date.year, date.month, date.day),
           minTemperatureC: low,
           maxTemperatureC: high,
-          conditionCode: _toOpenWeatherConditionCode(weatherCode),
+          conditionCode: toOpenWeatherConditionCode(weatherCode),
           uvIndex: uvIndex,
           sunrise: sunrise,
           sunset: sunset,
@@ -259,11 +281,26 @@ class OpenMeteoProvider implements WeatherProvider {
     return list[index];
   }
 
-  int _toOpenWeatherConditionCode(int code) {
+  /// Open-Meteo with timezone=auto returns wall-clock strings for the
+  /// *location* without any offset. Parsing those naively would treat them
+  /// as device-local and break day/night and staleness math for manual picks
+  /// in other timezones. Anchor the string to UTC, subtract the reported
+  /// offset to obtain a true instant, then convert to device-local so time
+  /// fields (.hour etc.) display correctly everywhere.
+  DateTime? _parseLocationInstant(Object? raw, int utcOffsetSeconds) {
+    final value = raw?.toString();
+    if (value == null || value.isEmpty) return null;
+    final asUtc = DateTime.tryParse('${value}Z') ?? DateTime.tryParse(value);
+    return asUtc?.subtract(Duration(seconds: utcOffsetSeconds)).toLocal();
+  }
+
+  /// Maps WMO weather codes to the OpenWeather condition-code space the rest
+  /// of the app consumes. Public static for direct unit testing.
+  static int toOpenWeatherConditionCode(int code) {
     switch (code) {
       case 0:
+      case 1: // mainly clear reads as clear for backgrounds and icons
         return 800;
-      case 1:
       case 2:
         return 801;
       case 3:

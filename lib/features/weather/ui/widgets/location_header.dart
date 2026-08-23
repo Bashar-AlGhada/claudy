@@ -1,5 +1,7 @@
+import 'package:claudy/core/i18n/locale_keys.dart';
 import 'package:claudy/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 /// Displays the current location name prominently with the raw
 /// coordinates as a smaller subtitle.
@@ -76,7 +78,7 @@ class LocationHeader extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: onRefresh,
-              tooltip: 'Refresh location',
+              tooltip: LocaleKeys.locationRefreshTooltip.tr,
             ),
         ],
       ),

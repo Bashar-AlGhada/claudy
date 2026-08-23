@@ -86,13 +86,20 @@ void main() {
 
     final state = await container.read(locationProvider.future);
     expect(state.coordinate?.lat, 52.3725);
-    expect(state.name, 'Amsterdam, Netherlands');
+
+    // The place name is patched in asynchronously after the first GPS fix;
+    // let the geocode round-trip (fake, immediate) complete.
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(locationProvider).value?.name, 'Amsterdam, Netherlands');
     expect(geocoder.calls, 1);
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('settings.location.lastKnownPlaceName'), 'Amsterdam, Netherlands');
+    expect(prefs.getDouble('settings.location.lastKnownPlaceName.lat'), closeTo(52.3725, 1e-9));
+    expect(prefs.getDouble('settings.location.lastKnownPlaceName.lon'), closeTo(4.8930, 1e-9));
 
-    // Same spot again: cached name, no extra network call.
+    // Same spot again: cached name synchronously, no extra network call.
     final second = await container.refresh(locationProvider.future);
     expect(second.name, 'Amsterdam, Netherlands');
     expect(geocoder.calls, 1);

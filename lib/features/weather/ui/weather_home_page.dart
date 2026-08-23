@@ -28,6 +28,7 @@ class WeatherHomePage extends ConsumerWidget {
   const WeatherHomePage({super.key});
 
   static const double _wideBreakpoint = 900;
+  static const double _wideMaxWidth = 1200;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,12 +42,22 @@ class WeatherHomePage extends ConsumerWidget {
     final coordinates = _buildCoordinates(locationData);
     final isCurrentLocation = _isCurrentLocation(locationData?.mode);
 
+    Widget weatherContent(WeatherReading value) => _WeatherContent(
+          value: value,
+          locationName: locationName,
+          coordinates: coordinates,
+          isCurrentLocation: isCurrentLocation,
+          onRefreshLocation: () =>
+              ref.read(locationProvider.notifier).requestPermissionAndRefresh(),
+          onOpenDetails: () => context.push(AppRoutes.detailsFor('current')),
+        );
+
     final content = LayoutBuilder(
       builder: (context, constraints) {
         // Keep the phone column width; only spread out on genuinely wide
         // windows so the two-pane layout has room to breathe.
         final maxWidth =
-            constraints.maxWidth >= _wideBreakpoint ? 1200.0 : 720.0;
+            constraints.maxWidth >= _wideBreakpoint ? _wideMaxWidth : 720.0;
         return Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
@@ -84,17 +95,7 @@ class WeatherHomePage extends ConsumerWidget {
                             EdgeInsets.symmetric(horizontal: Tokens.space16),
                         child: LinearProgressIndicator(minHeight: 2),
                       ),
-                    _WeatherContent(
-                      value: reading.asData!.value!,
-                      locationName: locationName,
-                      coordinates: coordinates,
-                      isCurrentLocation: isCurrentLocation,
-                      onRefreshLocation: () => ref
-                          .read(locationProvider.notifier)
-                          .requestPermissionAndRefresh(),
-                      onOpenDetails: () =>
-                          context.push(AppRoutes.detailsFor('current')),
-                    ),
+                    weatherContent(reading.asData!.value!),
                   ] else
                     reading.when(
                       data: (value) {
@@ -107,17 +108,7 @@ class WeatherHomePage extends ConsumerWidget {
                             onAction: () => context.go(AppRoutes.search),
                           );
                         }
-                        return _WeatherContent(
-                          value: value,
-                          locationName: locationName,
-                          coordinates: coordinates,
-                          isCurrentLocation: isCurrentLocation,
-                          onRefreshLocation: () => ref
-                              .read(locationProvider.notifier)
-                              .requestPermissionAndRefresh(),
-                          onOpenDetails: () =>
-                              context.push(AppRoutes.detailsFor('current')),
-                        );
+                        return weatherContent(value);
                       },
                       error: (e, _) => Padding(
                         padding: const EdgeInsets.symmetric(
@@ -159,7 +150,12 @@ class WeatherHomePage extends ConsumerWidget {
     if (name != null && name.trim().isNotEmpty) {
       return name;
     }
-    return LocaleKeys.currentLocation.tr;
+    // Device fixes show the generic label; unlabeled manual picks get the
+    // mode label so the coordinates are not rendered twice (title + subtitle).
+    if (_isCurrentLocation(state?.mode)) {
+      return LocaleKeys.currentLocation.tr;
+    }
+    return LocaleKeys.locationModeManual.tr;
   }
 
   static String? _buildCoordinates(LocationState? state) {
@@ -270,8 +266,6 @@ class _WeatherContent extends StatelessWidget {
   final bool isCurrentLocation;
   final VoidCallback? onRefreshLocation;
 
-  static const double _wideBreakpoint = 900;
-
   @override
   Widget build(BuildContext context) {
     final current = value.snapshot.current;
@@ -301,21 +295,19 @@ class _WeatherContent extends StatelessWidget {
     Widget conditionsColumn({required bool trailingAqi}) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            FocusableActionDetector(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(Tokens.cornerRadius),
-                  onTap: onOpenDetails,
-                  child: Semantics(
-                    button: true,
-                    label: LocaleKeys.weatherDetails.tr,
-                    child: CurrentWeatherCard(
-                      weather: current,
-                      isStale: value.isStale,
-                      providerName: value.snapshot.providerName,
-                      fetchedAt: value.snapshot.fetchedAt,
-                    ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(Tokens.cornerRadius),
+                onTap: onOpenDetails,
+                child: Semantics(
+                  button: true,
+                  label: LocaleKeys.weatherDetails.tr,
+                  child: CurrentWeatherCard(
+                    weather: current,
+                    isStale: value.isStale,
+                    providerName: value.snapshot.providerName,
+                    fetchedAt: value.snapshot.fetchedAt,
                   ),
                 ),
               ),
@@ -362,7 +354,7 @@ class _WeatherContent extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= _wideBreakpoint;
+        final isWide = constraints.maxWidth >= WeatherHomePage._wideBreakpoint;
 
         if (!isWide) {
           // Single-column layout for phones and narrow windows.

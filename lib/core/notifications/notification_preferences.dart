@@ -1,3 +1,4 @@
+import 'package:claudy/core/logging/app_logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -85,7 +86,10 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
 
   void _update(NotificationPreferences Function(NotificationPreferences) transform) {
     final current = state.value;
-    if (current == null) return;
+    if (current == null) {
+      AppLogger.warn('Notification preference patch dropped; state not ready');
+      return;
+    }
     state = AsyncData(transform(current));
   }
 

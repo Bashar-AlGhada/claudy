@@ -31,15 +31,27 @@ abstract class ParticleAnimationState<W extends ParticleAnimation> extends State
     _controller = AnimationController(
       vsync: this,
       duration: cycleDuration,
-    )..repeat();
+    );
+    if (!widget.lowPower) {
+      _controller.repeat();
+    }
     regenerate();
   }
 
   @override
   void didUpdateWidget(covariant W oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.lowPower != widget.lowPower) {
+      // Keep the ticker idle while nothing is painted; without this the
+      // controller keeps firing every vsync in battery-save mode.
+      if (widget.lowPower) {
+        _controller.stop();
+      } else {
+        _controller.repeat();
+      }
+    }
     if (shouldRegenerate(oldWidget)) {
-      regenerate();
+      setState(regenerate);
     }
   }
 

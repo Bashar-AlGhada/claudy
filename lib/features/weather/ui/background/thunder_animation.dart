@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:claudy/core/theme/tokens.dart';
 
-/// Thunder/lightning animation with random flashes and optional lightning bolts.
+/// Thunder/lightning animation with random flashes and lightning bolts.
 class ThunderAnimation extends StatefulWidget {
   const ThunderAnimation({
     super.key,
@@ -10,10 +10,10 @@ class ThunderAnimation extends StatefulWidget {
     this.lowPower = false,
   });
 
-  /// Storm intensity affecting flash frequency (0.0-1.0).
+  /// Storm intensity affecting flash frequency.
   final double intensity;
 
-  /// Disables animation when battery saving is active.
+  /// Disables the animation when battery saving is active.
   final bool lowPower;
 
   @override
@@ -28,7 +28,7 @@ class _ThunderAnimationState extends State<ThunderAnimation>
   int _flashScheduleToken = 0;
 
   double _flashOpacity = 0.0;
-  List<Offset>? _lightningPath;
+  _LightningBolt? _lightningBolt;
   bool _isFlashing = false;
 
   @override
@@ -47,7 +47,7 @@ class _ThunderAnimationState extends State<ThunderAnimation>
 
     _flashController.addStatusListener(_onFlashStatus);
     if (!widget.lowPower) {
-      _scheduleNextFlash();
+      _scheduleNextFlash(first: true);
     }
   }
 
@@ -55,23 +55,29 @@ class _ThunderAnimationState extends State<ThunderAnimation>
     if (status == AnimationStatus.completed) {
       setState(() {
         _isFlashing = false;
-        _lightningPath = null;
+        _lightningBolt = null;
       });
       _scheduleNextFlash();
     }
   }
 
-  void _scheduleNextFlash() {
+  void _scheduleNextFlash({bool first = false}) {
     if (!mounted) return;
     final scheduleToken = ++_flashScheduleToken;
 
-    // Random interval: 5-15 seconds, shorter with higher intensity
-    final clampedIntensity = widget.intensity.clamp(0.0, 1.0);
-    final minDelay = (15 - 10 * clampedIntensity).toInt();
-    final maxDelay = (20 - 10 * clampedIntensity).toInt();
-    final delay = Duration(
-      seconds: minDelay + _random.nextInt(maxDelay - minDelay + 1),
-    );
+    final Duration delay;
+    if (first) {
+      // Strike shortly after mount so the effect is immediately visible.
+      delay = Duration(milliseconds: 1200 + _random.nextInt(800));
+    } else {
+      // 8-12 s at intensity 0, shrinking to 3-6 s at full intensity.
+      final clampedIntensity = widget.intensity.clamp(0.0, 1.0);
+      final minDelay = (8 - 5 * clampedIntensity).toInt();
+      final maxDelay = (12 - 6 * clampedIntensity).toInt();
+      delay = Duration(
+        seconds: minDelay + _random.nextInt(maxDelay - minDelay + 1),
+      );
+    }
 
     Future.delayed(delay, () {
       if (!mounted || scheduleToken != _flashScheduleToken) return;
@@ -82,75 +88,69 @@ class _ThunderAnimationState extends State<ThunderAnimation>
   }
 
   void _triggerFlash() {
-    // Generate lightning bolt path
-    _lightningPath = _generateLightningPath();
+    _lightningBolt = _generateLightningBolt();
 
     setState(() => _isFlashing = true);
-
-    // Flash sequence: bright -> dim -> bright -> fade
-    _flashSequence();
+    _flashSequence(++_flashScheduleToken);
   }
 
-  Future<void> _flashSequence() async {
+  /// bright -> dim -> (sometimes) bright again -> fade, mimicking a real
+  /// multi-strobe lightning strike before the fade-out controller runs.
+  Future<void> _flashSequence(int sequenceToken) async {
     if (!mounted) return;
 
-    // First flash
     setState(() => _flashOpacity = 0.4 + _random.nextDouble() * 0.3);
     _boltController.forward(from: 0);
 
     await Future.delayed(const Duration(milliseconds: 50));
-    if (!mounted) return;
+    if (!mounted || sequenceToken != _flashScheduleToken) return;
 
     setState(() => _flashOpacity = 0.1);
 
     await Future.delayed(const Duration(milliseconds: 80));
-    if (!mounted) return;
+    if (!mounted || sequenceToken != _flashScheduleToken) return;
 
-    // Second flash (sometimes)
     if (_random.nextBool()) {
       setState(() => _flashOpacity = 0.3 + _random.nextDouble() * 0.2);
       await Future.delayed(const Duration(milliseconds: 60));
-      if (!mounted) return;
+      if (!mounted || sequenceToken != _flashScheduleToken) return;
     }
 
-    // Fade out
     setState(() => _flashOpacity = 0.0);
     _flashController.forward(from: 0);
   }
 
-  List<Offset> _generateLightningPath() {
-    final points = <Offset>[];
+  _LightningBolt _generateLightningBolt() {
+    final mainPoints = <Offset>[];
+    final branches = <List<Offset>>[];
     final startX = 0.2 + _random.nextDouble() * 0.6;
 
     var x = startX;
     var y = 0.0;
 
-    points.add(Offset(x, y));
+    mainPoints.add(Offset(x, y));
 
     while (y < 0.7) {
-      // Random horizontal deviation
       x += (_random.nextDouble() - 0.5) * 0.15;
       x = x.clamp(0.1, 0.9);
 
-      // Random vertical step
       y += 0.05 + _random.nextDouble() * 0.1;
 
-      points.add(Offset(x, y));
+      mainPoints.add(Offset(x, y));
 
-      if (_random.nextDouble() < 0.3 && points.length > 2) {
-        final branchStart = points[points.length - 2];
-        final branchEnd = Offset(
-          branchStart.dx + (_random.nextDouble() - 0.5) * 0.2,
-          branchStart.dy + 0.1 + _random.nextDouble() * 0.1,
-        );
-        // Store branch as separate segment (will be drawn separately)
-        points.add(branchStart);
-        points.add(branchEnd);
-        points.add(Offset(x, y)); // Continue main bolt
+      if (_random.nextDouble() < 0.3 && mainPoints.length > 2) {
+        final branchStart = mainPoints[mainPoints.length - 2];
+        branches.add([
+          branchStart,
+          Offset(
+            branchStart.dx + (_random.nextDouble() - 0.5) * 0.2,
+            branchStart.dy + 0.1 + _random.nextDouble() * 0.1,
+          ),
+        ]);
       }
     }
 
-    return points;
+    return _LightningBolt(mainPoints: mainPoints, branches: branches);
   }
 
   @override
@@ -163,7 +163,7 @@ class _ThunderAnimationState extends State<ThunderAnimation>
         _boltController.stop();
         _flashOpacity = 0.0;
         _isFlashing = false;
-        _lightningPath = null;
+        _lightningBolt = null;
       } else {
         _scheduleNextFlash();
       }
@@ -196,12 +196,12 @@ class _ThunderAnimationState extends State<ThunderAnimation>
             ),
 
           // Lightning bolt
-          if (_isFlashing && _lightningPath != null)
+          if (_isFlashing && _lightningBolt != null)
             AnimatedBuilder(
               animation: _boltController,
               builder: (context, _) => CustomPaint(
                 painter: _LightningPainter(
-                  path: _lightningPath!,
+                  bolt: _lightningBolt!,
                   progress: _boltController.value,
                 ),
                 size: Size.infinite,
@@ -213,8 +213,15 @@ class _ThunderAnimationState extends State<ThunderAnimation>
   }
 }
 
+class _LightningBolt {
+  _LightningBolt({required this.mainPoints, required this.branches});
+
+  final List<Offset> mainPoints;
+  final List<List<Offset>> branches;
+}
+
 class _LightningPainter extends CustomPainter {
-  _LightningPainter({required this.path, required this.progress});
+  _LightningPainter({required this.bolt, required this.progress});
 
   static final Paint _glowPaint = Paint()
     ..strokeWidth = 12
@@ -233,26 +240,39 @@ class _LightningPainter extends CustomPainter {
     ..strokeJoin = StrokeJoin.round
     ..style = PaintingStyle.stroke;
 
-  final List<Offset> path;
+  final _LightningBolt bolt;
   final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (path.length < 2) return;
+    final visiblePoints =
+        (bolt.mainPoints.length * progress).ceil().clamp(2, bolt.mainPoints.length);
+    final opacity = 1.0 - progress * 0.55;
 
-    final visiblePoints = (path.length * progress).ceil().clamp(2, path.length);
-    final opacity = 1.0 - progress * 0.7;
-
-    // Glow effect
-    _glowPaint.color = Colors.white.withValues(alpha: opacity * 0.4);
+    _glowPaint.color = Colors.white.withValues(alpha: opacity * 0.5);
     _corePaint.color = Colors.white.withValues(alpha: opacity);
     _innerPaint.color = const Color(0xFFE0E8FF).withValues(alpha: opacity);
 
     final boltPath = Path();
-    boltPath.moveTo(path[0].dx * size.width, path[0].dy * size.height);
+    final points = bolt.mainPoints;
+    boltPath.moveTo(points[0].dx * size.width, points[0].dy * size.height);
 
     for (var i = 1; i < visiblePoints; i++) {
-      boltPath.lineTo(path[i].dx * size.width, path[i].dy * size.height);
+      boltPath.lineTo(points[i].dx * size.width, points[i].dy * size.height);
+    }
+
+    // Branch tips appear only once the trunk has grown past their origin.
+    for (final branch in bolt.branches) {
+      final originIndex = points.indexOf(branch[0]);
+      if (originIndex < 0 || originIndex >= visiblePoints) continue;
+      boltPath.moveTo(
+        branch[0].dx * size.width,
+        branch[0].dy * size.height,
+      );
+      boltPath.lineTo(
+        branch[1].dx * size.width,
+        branch[1].dy * size.height,
+      );
     }
 
     canvas.drawPath(boltPath, _glowPaint);
@@ -262,5 +282,5 @@ class _LightningPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _LightningPainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.path != path;
+      oldDelegate.progress != progress || oldDelegate.bolt != bolt;
 }

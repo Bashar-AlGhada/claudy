@@ -64,6 +64,7 @@ class _MapPageState extends ConsumerState<MapPage> {
   @override
   Widget build(BuildContext context) {
     final provider = ref.watch(activeMapProvider);
+    final userLocation = ref.watch(locationProvider).value?.coordinate;
 
     return Scaffold(
       appBar: AppBar(title: Text(LocaleKeys.navMap.tr)),
@@ -91,6 +92,7 @@ class _MapPageState extends ConsumerState<MapPage> {
                             child: provider.build(
                               overlays: _overlays,
                               marker: _picked,
+                              userLocation: userLocation,
                               onTap: _selectCoordinate,
                             ),
                           ),
@@ -151,6 +153,7 @@ class _MapPageState extends ConsumerState<MapPage> {
                             child: provider.build(
                               overlays: _overlays,
                               marker: _picked,
+                              userLocation: userLocation,
                               onTap: _selectCoordinate,
                             ),
                           ),

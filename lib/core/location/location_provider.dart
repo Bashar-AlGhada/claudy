@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:claudy/core/i18n/locale_provider.dart';
 import 'package:claudy/core/location/location_client.dart';
 import 'package:claudy/core/location/location_client_provider.dart';
@@ -18,14 +20,42 @@ class LocationNotifier extends AsyncNotifier<LocationState> {
   /// Two fixes within ~2km count as the same spot for place-name caching.
   static const double _placeNameToleranceDeg = 0.02;
 
+  static const _autoRequestFlagKey =
+      'settings.location.permissionAutoRequested';
+
   @override
   Future<LocationState> build() async {
-    return _resolve(await SharedPreferences.getInstance());
+    final prefs = await SharedPreferences.getInstance();
+    final resolved = await _resolve(prefs);
+    _maybeAutoRequestPermission(prefs, resolved);
+    return resolved;
+  }
+
+  /// First launch only: fire the OS consent prompt automatically so the app
+  /// starts at the user's actual position instead of silently falling back
+  /// to the default coordinate. Never repeats - afterwards the home-screen
+  /// banner owns re-requesting.
+  void _maybeAutoRequestPermission(SharedPreferences prefs, LocationState state) {
+    if (state.mode == LocationMode.manual) return;
+    if (!state.isPermissionDenied) return;
+    if (LocationStorage.readLastKnown(prefs) != null) return;
+    if (prefs.getBool(_autoRequestFlagKey) ?? false) return;
+
+    unawaited(() async {
+      await prefs.setBool(_autoRequestFlagKey, true);
+      if (!ref.mounted) return;
+      await requestPermissionAndRefresh();
+    }());
   }
 
   Future<void> setMode(LocationMode mode) async {
     final prefs = await SharedPreferences.getInstance();
     await LocationStorage.writeMode(prefs, mode);
+    // Keep lastKnown in sync so the background worker can refresh the manual
+    // spot; done here (an explicit user action) rather than during resolve.
+    if (mode == LocationMode.manual) {
+      await LocationStorage.writeLastKnown(prefs, LocationStorage.readManual(prefs));
+    }
     await _applyResolved(prefs);
   }
 
@@ -65,7 +95,6 @@ class LocationNotifier extends AsyncNotifier<LocationState> {
     final lastKnown = LocationStorage.readLastKnown(prefs);
 
     if (mode == LocationMode.manual) {
-      await LocationStorage.writeLastKnown(prefs, manual);
       return LocationState(
         mode: mode,
         name: manualName,
@@ -102,7 +131,12 @@ class LocationNotifier extends AsyncNotifier<LocationState> {
       coordinate = lastKnown ?? manual;
     } else {
       coordinate = GeoCoordinate(lat: position.latitude, lon: position.longitude);
-      placeName = await _resolvePlaceName(prefs, coordinate);
+      placeName = _cachedPlaceName(prefs, coordinate);
+      if (placeName == null) {
+        // Never block the first location emission on a geocode round-trip;
+        // the name is patched in once it arrives.
+        unawaited(_patchPlaceName(prefs, coordinate));
+      }
     }
 
     await LocationStorage.writeLastKnown(prefs, coordinate);
@@ -115,31 +149,54 @@ class LocationNotifier extends AsyncNotifier<LocationState> {
     );
   }
 
-  /// Resolves a place label for a GPS fix, reusing the cached name while the
-  /// fix stays within [_placeNameToleranceDeg] of the one it was resolved for.
-  Future<String?> _resolvePlaceName(SharedPreferences prefs, GeoCoordinate coordinate) async {
+  /// Reuses the cached place name while its anchor fix is within
+  /// [_placeNameToleranceDeg] (~2 km in latitude; less longitudinally) of
+  /// [coordinate]. Anchors live in dedicated keys because lastKnown is also
+  /// written for manual picks and would otherwise corrupt the cache.
+  String? _cachedPlaceName(SharedPreferences prefs, GeoCoordinate coordinate) {
     final cached = LocationStorage.readLastPlaceName(prefs);
-    final cachedLat = prefs.getDouble(LocationStorage.keyLastLat);
-    final cachedLon = prefs.getDouble(LocationStorage.keyLastLon);
-    final sameSpot = cachedLat != null &&
-        cachedLon != null &&
-        (cachedLat - coordinate.lat).abs() < _placeNameToleranceDeg &&
-        (cachedLon - coordinate.lon).abs() < _placeNameToleranceDeg;
-    if (cached != null && sameSpot) return cached;
+    final anchor = LocationStorage.readLastPlaceNameAnchor(prefs);
+    if (cached == null || anchor == null) return null;
+    if ((anchor.lat - coordinate.lat).abs() >= _placeNameToleranceDeg ||
+        (anchor.lon - coordinate.lon).abs() >= _placeNameToleranceDeg) {
+      return null;
+    }
+    return cached;
+  }
 
+  /// Monotonic chain so overlapping patches cannot interleave the three
+  /// place-name prefs writes into a name-anchored-at-wrong-spot state.
+  Future<void> _placeNameWrites = Future.value();
+
+  Future<void> _patchPlaceName(SharedPreferences prefs, GeoCoordinate coordinate) async {
     final name = await ref
         .read(reverseGeocoderProvider)
         .resolveName(coordinate, languageCode: _storedLanguageCode(prefs));
-    if (name != null) {
-      await LocationStorage.writeLastPlaceName(prefs, name);
+    if (name == null) return;
+
+    final write = _placeNameWrites.then((_) async {
+      try {
+        await LocationStorage.writeLastPlaceName(prefs, name, coordinate);
+      } catch (e, s) {
+        AppLogger.warn('Failed to persist place name', error: e, stackTrace: s);
+      }
+    });
+    _placeNameWrites = write;
+    await write;
+
+    // Guard before touching `state`: reading it on a disposed notifier throws.
+    if (!ref.mounted) return;
+    final current = state.value;
+    if (current == null || current.coordinate != coordinate) {
+      return;
     }
-    return name;
+    state = AsyncData(current.copyWith(name: name));
   }
 
   static String _storedLanguageCode(SharedPreferences prefs) {
-    final raw = prefs.getString(LocaleNotifier.storageKey);
-    final parts = raw?.split('-') ?? const [];
-    return parts.isEmpty || parts.first.isEmpty ? 'en' : parts.first;
+    return LocaleNotifier.tryParse(prefs.getString(LocaleNotifier.storageKey))
+            ?.languageCode ??
+        'en';
   }
 
   Future<void> _applyResolved(SharedPreferences prefs) async {

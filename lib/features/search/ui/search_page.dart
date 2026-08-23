@@ -27,6 +27,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   AsyncValue<List<Place>> _results = const AsyncData([]);
   List<Place> _lastPlaces = const [];
 
+  /// Discards out-of-order search responses when a newer query already fired.
+  int _requestSeq = 0;
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -38,13 +41,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     _debounce?.cancel();
     final query = value.trim();
     if (query.isEmpty) {
+      _requestSeq++;
       setState(() => _results = const AsyncData([]));
       return;
     }
-    _debounce = Timer(Tokens.motionMedium, () async {
+    _debounce = Timer(Tokens.searchDebounce, () async {
+      final request = ++_requestSeq;
       final repo = ref.read(placeSearchRepositoryProvider);
       setState(() => _results = const AsyncLoading());
       final result = await repo.search(query);
+      if (!mounted || request != _requestSeq) return;
       setState(() {
         _results = result.fold(
           (failure) => AsyncError(failure, StackTrace.current),

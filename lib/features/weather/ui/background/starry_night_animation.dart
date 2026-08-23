@@ -23,6 +23,8 @@ class _StarryNightState extends ParticleAnimationState<StarryNightAnimation> {
 
   @override
   void regenerate() {
+    // Floor at 0.3 so the sky never goes fully starless for low intensities;
+    // callers pass 1.0 today but the widget contract allows less.
     final clampedIntensity = widget.intensity.clamp(0.3, 1.0);
     final count = (90 * clampedIntensity).round();
     _stars = List.generate(count, (_) => _createStar());
@@ -41,11 +43,8 @@ class _StarryNightState extends ParticleAnimationState<StarryNightAnimation> {
   }
 
   @override
-  CustomPainter createPainter(double progress) => _StarryNightPainter(
-        stars: _stars,
-        progress: progress,
-        intensity: widget.intensity,
-      );
+  CustomPainter createPainter(double progress) =>
+      _StarryNightPainter(stars: _stars, progress: progress);
 }
 
 class _Star {
@@ -69,13 +68,7 @@ class _Star {
 }
 
 class _StarryNightPainter extends CustomPainter {
-  _StarryNightPainter({
-    required this.stars,
-    required this.progress,
-    required this.intensity,
-  });
-
-  final double intensity;
+  _StarryNightPainter({required this.stars, required this.progress});
 
   static const Color _starColor = Color(0xFFF6F7FF);
   static const Color _moonColor = Color(0xFFF3EEDD);
@@ -210,7 +203,5 @@ class _StarryNightPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _StarryNightPainter oldDelegate) =>
-      oldDelegate.progress != progress ||
-      oldDelegate.intensity != intensity ||
-      oldDelegate.stars != stars;
+      oldDelegate.progress != progress || oldDelegate.stars != stars;
 }

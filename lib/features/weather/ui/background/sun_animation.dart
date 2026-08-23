@@ -12,8 +12,6 @@ class SunAnimation extends ParticleAnimation {
 }
 
 class _SunAnimationState extends ParticleAnimationState<SunAnimation> {
-  static const int _maxMoteCount = 20;
-
   late List<_DustMote> _motes;
 
   @override
@@ -21,9 +19,11 @@ class _SunAnimationState extends ParticleAnimationState<SunAnimation> {
 
   int get _moteCount {
     final clampedIntensity = widget.intensity.clamp(0.0, 1.0);
-    final count = (20 * clampedIntensity).round();
-    return count.clamp(0, _maxMoteCount);
+    return (20 * clampedIntensity).round();
   }
+
+  @override
+  Random createRandom() => Random(303);
 
   @override
   void regenerate() {
@@ -83,13 +83,35 @@ class _SunPainter extends CustomPainter {
   final double progress;
   final double intensity;
   final List<_DustMote> motes;
+
   static final Paint _motePaint = Paint()
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
+  static final Paint _glowPaint = Paint();
+  static final Paint _rayPaint = Paint()
+    ..strokeWidth = 3
+    ..strokeCap = StrokeCap.round;
+  static final Paint _corePaint = Paint();
+  static final Paint _innerCorePaint = Paint()
+    ..color = Colors.white.withValues(alpha: 0.6)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+  static List<Color> _glowColors(double intensity) => [
+        const Color(0xFFFFD54F).withValues(alpha: 0.25 * intensity),
+        const Color(0xFFFFB300).withValues(alpha: 0.1 * intensity),
+        const Color(0xFFFF8F00).withValues(alpha: 0.0),
+      ];
+
+  static List<Color> _rayColors(double intensity) => [
+        const Color(0xFFFFD54F).withValues(alpha: 0.5 * intensity),
+        const Color(0xFFFFB300).withValues(alpha: 0.0),
+      ];
 
   @override
   void paint(Canvas canvas, Size size) {
     final sunCenter = Offset(size.width * 0.8, size.height * 0.15);
-    final sunRadius = size.width * 0.08;
+    // shortestSide keeps the disc inside tall phone screens AND very wide
+    // desktop windows alike (width-only scaling clipped the glow on ultrawide).
+    final sunRadius = size.shortestSide * 0.08;
 
     _drawSunGlow(canvas, sunCenter, sunRadius);
     _drawSunRays(canvas, sunCenter, sunRadius);
@@ -102,20 +124,18 @@ class _SunPainter extends CustomPainter {
     final glowRadius = radius * 4 * pulseScale;
 
     final gradient = RadialGradient(
-      colors: [
-        const Color(0xFFFFD54F).withValues(alpha: 0.25 * intensity),
-        const Color(0xFFFFB300).withValues(alpha: 0.1 * intensity),
-        const Color(0xFFFF8F00).withValues(alpha: 0.0),
-      ],
+      colors: _glowColors(intensity),
       stops: const [0.0, 0.5, 1.0],
     );
 
-    final paint = Paint()
-      ..shader = gradient.createShader(
-        Rect.fromCircle(center: center, radius: glowRadius),
-      );
-
-    canvas.drawCircle(center, glowRadius, paint);
+    canvas.drawCircle(
+      center,
+      glowRadius,
+      _glowPaint
+        ..shader = gradient.createShader(
+          Rect.fromCircle(center: center, radius: glowRadius),
+        ),
+    );
   }
 
   void _drawSunRays(Canvas canvas, Offset center, double radius) {
@@ -123,6 +143,7 @@ class _SunPainter extends CustomPainter {
     final rayLength = radius * 2.5;
 
     final rotation = progress * pi * 2 * 0.1;
+    final rayColors = _rayColors(intensity);
 
     for (var i = 0; i < rayCount; i++) {
       final angle = (i / rayCount) * pi * 2 + rotation;
@@ -139,17 +160,13 @@ class _SunPainter extends CustomPainter {
         center.dy + sin(angle) * (startDistance + currentLength),
       );
 
-      final rayPaint = Paint()
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFFFFD54F).withValues(alpha: 0.5 * intensity),
-            const Color(0xFFFFB300).withValues(alpha: 0.0),
-          ],
-        ).createShader(Rect.fromPoints(start, end))
-        ..strokeWidth = 3
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawLine(start, end, rayPaint);
+      canvas.drawLine(
+        start,
+        end,
+        _rayPaint
+          ..shader = LinearGradient(colors: rayColors)
+              .createShader(Rect.fromPoints(start, end)),
+      );
     }
   }
 
@@ -166,23 +183,21 @@ class _SunPainter extends CustomPainter {
       stops: const [0.0, 0.6, 1.0],
     );
 
-    final corePaint = Paint()
-      ..shader = coreGradient.createShader(
-        Rect.fromCircle(center: center, radius: coreRadius),
-      );
+    canvas.drawCircle(
+      center,
+      coreRadius,
+      _corePaint
+        ..shader = coreGradient.createShader(
+          Rect.fromCircle(center: center, radius: coreRadius),
+        ),
+    );
 
-    canvas.drawCircle(center, coreRadius, corePaint);
-
-    final innerPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.6)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-
-    canvas.drawCircle(center, coreRadius * 0.4, innerPaint);
+    canvas.drawCircle(center, coreRadius * 0.4, _innerCorePaint);
   }
 
   void _drawDustMotes(Canvas canvas, Size size) {
     for (final mote in motes) {
-      final y = (mote.y - progress * mote.speed) % 1.0;
+      final y = (mote.y - progress * mote.speed) % 1.2 - 0.1;
       final x =
           (mote.x +
               sin(progress * pi * 2 * mote.twinkleSpeed + mote.phase) * 0.02 +

@@ -11,15 +11,16 @@ class Tokens {
   static const Duration motionFast = Duration(milliseconds: 150);
   static const Duration motionMedium = Duration(milliseconds: 240);
   static const Duration motionSlow = Duration(milliseconds: 300);
+  static const Duration searchDebounce = Duration(milliseconds: 450);
   static const Curve easeOut = Curves.easeOutCubic;
   static const Curve easeInOut = Curves.easeInOutCubic;
 
   // Floating Navigation Bar
-  static const double floatingNavBarHeight = 64.0;
-  static const double floatingNavBarMargin = 16.0;
-  static const double floatingNavBarBorderRadius = 32.0;
-  static const double floatingNavBarElevation = 8.0;
-  static const double floatingNavBarOpacity = 0.85;
+  static const double floatingNavBarHeight = 56.0;
+  static const double floatingNavBarMargin = 14.0;
+  static const double floatingNavBarBorderRadius = 28.0;
+  static const double floatingNavBarElevation = 4.0;
+  static const double floatingNavBarOpacity = 0.80;
 
   // Empty State Icons
   static const double emptyStateIconSize = 120.0;

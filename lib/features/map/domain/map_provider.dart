@@ -8,6 +8,7 @@ abstract class MapProvider {
   Widget build({
     required Set<MapOverlay> overlays,
     required GeoCoordinate? marker,
+    GeoCoordinate? userLocation,
     required ValueChanged<GeoCoordinate> onTap,
   });
 }

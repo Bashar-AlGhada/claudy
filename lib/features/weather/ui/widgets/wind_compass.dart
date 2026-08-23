@@ -161,14 +161,12 @@ class _CompassPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
-    // Draw outer circle
     final outerCirclePaint = Paint()
       ..color = secondaryColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawCircle(center, radius - 5, outerCirclePaint);
 
-    // Draw tick marks
     final tickPaint = Paint()
       ..color = secondaryColor
       ..strokeWidth = 1.5
@@ -197,7 +195,6 @@ class _CompassPainter extends CustomPainter {
       );
     }
 
-    // Draw cardinal direction labels
     final directions = ['N', 'E', 'S', 'W'];
     final angles = [-90, 0, 90, 180];
 
@@ -225,7 +222,6 @@ class _CompassPainter extends CustomPainter {
       );
     }
 
-    // Draw wind direction arrow
     final arrowAngle = (degrees - 90) * math.pi / 180;
     final arrowLength = radius - 35;
 
@@ -241,7 +237,6 @@ class _CompassPainter extends CustomPainter {
       center.dy + arrowLength * math.sin(arrowAngle),
     );
 
-    // Draw arrow head
     final arrowHeadPath = Path();
     final arrowHeadSize = 10.0;
     final arrowTipX = center.dx + arrowLength * math.cos(arrowAngle);
@@ -258,11 +253,9 @@ class _CompassPainter extends CustomPainter {
       arrowTipY - arrowHeadSize * math.sin(arrowAngle + 0.4),
     );
 
-    // Draw arrow from center to tip
     canvas.drawLine(center, arrowEnd, arrowPaint);
     canvas.drawPath(arrowHeadPath, arrowPaint);
 
-    // Draw center dot
     final centerDotPaint = Paint()
       ..color = arrowColor
       ..style = PaintingStyle.fill;

@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:claudy/core/i18n/i18n_loader.dart';
 import 'package:claudy/core/i18n/i18n_store.dart';
 import 'package:claudy/core/background/background_scheduler.dart';
+import 'package:claudy/core/logging/app_logger.dart';
 import 'package:claudy/core/notifications/notification_provider.dart';
 import 'package:claudy/core/perf/frame_monitor.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
@@ -24,11 +26,14 @@ class AppBootstrap {
   }
 
   static Future<void> _ensureHiveDirectory() async {
+    if (kIsWeb) return;
     try {
       final dir = await getApplicationDocumentsDirectory();
       await Directory(dir.path).create(recursive: true);
-    } catch (_) {
-      // Path provider is unavailable (e.g. web); Hive.initFlutter handles it.
+    } catch (e, s) {
+      // Redirected/unavailable documents directories would otherwise crash
+      // Hive's lock-file creation; log and let the app run without cache.
+      AppLogger.warn('Could not prepare documents directory', error: e, stackTrace: s);
     }
   }
 }

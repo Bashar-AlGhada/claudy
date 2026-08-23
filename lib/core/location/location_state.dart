@@ -12,7 +12,8 @@ class LocationState {
 
   final LocationMode mode;
 
-  /// Human-readable place label for manually picked locations.
+  /// Human-readable place label; from search picks in manual mode, or
+  /// reverse-geocoded for GPS fixes (may be absent while resolving).
   final String? name;
   final GeoCoordinate? coordinate;
   final bool isPermissionDenied;

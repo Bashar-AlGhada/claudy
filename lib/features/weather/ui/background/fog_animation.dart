@@ -39,8 +39,9 @@ class _FogAnimationState extends ParticleAnimationState<FogAnimation> {
       height: 0.15 + (1 - depth) * 0.2,
       speed: 0.02 + (1 - depth) * 0.03,
       direction: index.isEven ? 1.0 : -1.0,
-      opacity: (0.08 + (1 - depth) * 0.12) * widget.intensity,
-      waveAmplitude: 0.02 + random.nextDouble() * 0.02,
+      opacity:
+          (0.13 + (1 - depth) * 0.15) * widget.intensity.clamp(0.0, 1.0),
+      waveAmplitude: 0.03 + random.nextDouble() * 0.03,
       waveFrequency: 0.5 + random.nextDouble() * 0.5,
       phase: random.nextDouble() * pi * 2,
       seed: random.nextInt(10000),
@@ -90,9 +91,9 @@ class _FogPainter extends CustomPainter {
   final double progress;
   final double intensity;
   static final Paint _layerPaint = Paint()
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
   static final Paint _wispPaint = Paint()
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -157,7 +158,7 @@ class _FogPainter extends CustomPainter {
   }
 
   void _drawWisps(Canvas canvas, Size size, _FogLayer layer, double xOffset) {
-    final wispCount = (4 * intensity.clamp(0.0, 1.0)).round().clamp(0, 4);
+    final wispCount = (6 * intensity.clamp(0.0, 1.0)).round();
 
     for (var i = 0; i < wispCount; i++) {
       final seed = layer.seed + i;
@@ -167,8 +168,8 @@ class _FogPainter extends CustomPainter {
       final y =
           layer.yPosition * size.height + yFactor * layer.height * size.height;
 
-      final wispWidth = 40 + ((seed * 0.173) % 1.0) * 60;
-      final wispHeight = 10 + ((seed * 0.257) % 1.0) * 20;
+      final wispWidth = 60 + ((seed * 0.173) % 1.0) * 80;
+      final wispHeight = 14 + ((seed * 0.257) % 1.0) * 26;
 
       _wispPaint.color = Colors.white.withValues(alpha: layer.opacity * 0.5);
 

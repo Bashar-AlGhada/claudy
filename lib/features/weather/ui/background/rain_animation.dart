@@ -12,7 +12,6 @@ class RainAnimation extends ParticleAnimation {
 }
 
 class _RainAnimationState extends ParticleAnimationState<RainAnimation> {
-  static const int _minDropCount = 24;
   static const int _maxDropCount = 80;
 
   late List<_Raindrop> _drops;
@@ -22,11 +21,11 @@ class _RainAnimationState extends ParticleAnimationState<RainAnimation> {
 
   int get _dropCount {
     final clampedIntensity = widget.intensity.clamp(0.0, 1.0);
-    return (50 + (30 * clampedIntensity).toInt()).clamp(
-      _minDropCount,
-      _maxDropCount,
-    );
+    return (50 + (30 * clampedIntensity).toInt()).clamp(50, _maxDropCount);
   }
+
+  @override
+  Random createRandom() => Random(101);
 
   @override
   void regenerate() {
@@ -93,11 +92,13 @@ class _RainPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final clampedIntensity = intensity.clamp(0.0, 1.0);
-    final windOffset = sin(progress * pi * 2) * 0.02 * clampedIntensity;
+    final sway = sin(progress * pi * 2) * 0.02 * clampedIntensity;
 
     for (final drop in drops) {
       final y = (drop.y + progress * drop.speed * 2) % 1.2 - 0.1;
-      final x = (drop.x + windOffset + progress * drop.angle * 0.5) % 1.0;
+      // Wrap the base position first, then add the sway on top; wrapping the
+      // combined value made drops jump across the screen near both seams.
+      final x = (drop.x + progress * drop.angle * 0.5) % 1.0 + sway;
 
       final startX = x * size.width;
       final startY = y * size.height;
@@ -115,7 +116,7 @@ class _RainPainter extends CustomPainter {
   }
 
   void _drawRipples(Canvas canvas, Size size, double clampedIntensity) {
-    final rippleCount = (8 * clampedIntensity).round().clamp(0, 8);
+    final rippleCount = (8 * clampedIntensity).round();
 
     for (var i = 0; i < rippleCount; i++) {
       final baseX = ((i * 0.173) % 1.0) * size.width;

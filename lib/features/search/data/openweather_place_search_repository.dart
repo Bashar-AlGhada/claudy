@@ -1,4 +1,4 @@
-import 'package:claudy/core/config/app_config.dart';
+import 'package:claudy/core/config/api_key_store.dart';
 import 'package:claudy/core/errors/app_failure.dart';
 import 'package:claudy/core/errors/app_exception.dart';
 import 'package:claudy/core/http/dio_client.dart';
@@ -11,13 +11,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final placeSearchRepositoryProvider = Provider<PlaceSearchRepository>((ref) {
   final dio = ref.watch(dioProvider);
-  return OpenWeatherPlaceSearchRepository(dio: dio);
+  final store = ref.watch(apiKeyStoreProvider);
+  return OpenWeatherPlaceSearchRepository(dio: dio, resolveApiKey: store.read);
 });
 
 class OpenWeatherPlaceSearchRepository implements PlaceSearchRepository {
-  OpenWeatherPlaceSearchRepository({required Dio dio}) : _dio = dio;
+  OpenWeatherPlaceSearchRepository({required Dio dio, required this.resolveApiKey})
+      : _dio = dio;
 
   final Dio _dio;
+
+  /// Resolves at request time so a key added in Settings works immediately.
+  final Future<String> Function() resolveApiKey;
 
   @override
   Future<AppResult<List<Place>>> search(String query) async {
@@ -25,14 +30,15 @@ class OpenWeatherPlaceSearchRepository implements PlaceSearchRepository {
     if (trimmed.length < 2) {
       return const Failure(ValidationFailure(message: 'Query too short'));
     }
-    if (AppConfig.openWeatherApiKey.isEmpty) {
+    final apiKey = await resolveApiKey();
+    if (apiKey.isEmpty) {
       return _searchWithOpenMeteo(trimmed);
     }
 
     try {
       final response = await _dio.get<List<dynamic>>(
         'https://api.openweathermap.org/geo/1.0/direct',
-        queryParameters: {'q': trimmed, 'limit': 10, 'appid': AppConfig.openWeatherApiKey},
+        queryParameters: {'q': trimmed, 'limit': 10, 'appid': apiKey},
       );
 
       final data = response.data;

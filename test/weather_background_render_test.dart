@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:claudy/core/i18n/i18n_store.dart';
 import 'package:claudy/core/time/clock.dart';
 import 'package:claudy/core/time/clock_provider.dart';
@@ -22,14 +24,13 @@ class _FixedClock implements Clock {
   DateTime now() => DateTime(2026, 1, 10, hour);
 }
 
-class _DayClearReading extends WeatherReadingNotifier {
-  @override
-  Future<WeatherReading?> build() async => _reading(800, night: false);
-}
+class _ScenarioReading extends WeatherReadingNotifier {
+  _ScenarioReading(this.code, this.isNight);
+  final int code;
+  final bool isNight;
 
-class _NightClearReading extends WeatherReadingNotifier {
   @override
-  Future<WeatherReading?> build() async => _reading(800, night: true);
+  Future<WeatherReading?> build() async => _reading(code, night: isNight);
 }
 
 class _NoLocationReading extends WeatherReadingNotifier {
@@ -82,10 +83,13 @@ Future<void> _pump(
   WeatherReadingNotifier Function() notifier, {
   int clockHour = 21,
 }) async {
+  final fixed = _FixedClock(clockHour);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        clockProvider.overrideWithValue(_FixedClock(clockHour)),
+        clockProvider.overrideWithValue(fixed),
+        // Single emission: no periodic timer to leak past teardown.
+        wallClockProvider.overrideWith((ref) => Stream.value(fixed.now())),
         weatherReadingProvider.overrideWith(notifier),
       ],
       child: const MaterialApp(
@@ -106,10 +110,11 @@ void main() {
   });
 
   testWidgets('clear day renders sun animation and it advances', (tester) async {
-    await _pump(tester, _DayClearReading.new, clockHour: 13);
+    await _pump(tester, () => _ScenarioReading(800, false), clockHour: 13);
     var painters = await _painters(tester);
 
     expect(find.byType(SunAnimation), findsOneWidget);
+    expect(find.byType(CloudAnimation), findsNothing);
     final sunPainters = painters
         .where((p) => p.painter.runtimeType.toString() == '_SunPainter')
         .toList();
@@ -140,10 +145,11 @@ void main() {
   });
 
   testWidgets('clear night renders starry sky with advancing painter', (tester) async {
-    await _pump(tester, _NightClearReading.new);
+    await _pump(tester, () => _ScenarioReading(800, true));
     var painters = await _painters(tester);
 
     expect(find.byType(StarryNightAnimation), findsOneWidget);
+    expect(find.byType(SunAnimation), findsNothing);
     final nightPainters = painters
         .where((p) => p.painter.runtimeType.toString() == '_StarryNightPainter')
         .toList();
@@ -160,5 +166,23 @@ void main() {
             .painter as dynamic)
         .progress as double;
     expect(second, isNot(first));
+  });
+
+  testWidgets('selection matrix: night few-clouds composes stars + clouds', (tester) async {
+    await _pump(tester, () => _ScenarioReading(801, true));
+    await _painters(tester);
+
+    expect(find.byType(StarryNightAnimation), findsOneWidget);
+    expect(find.byType(CloudAnimation), findsOneWidget);
+    expect(find.byType(SunAnimation), findsNothing);
+  });
+
+  testWidgets('selection matrix: day few-clouds renders clouds only', (tester) async {
+    await _pump(tester, () => _ScenarioReading(801, false), clockHour: 13);
+    await _painters(tester);
+
+    expect(find.byType(CloudAnimation), findsOneWidget);
+    expect(find.byType(SunAnimation), findsNothing);
+    expect(find.byType(StarryNightAnimation), findsNothing);
   });
 }

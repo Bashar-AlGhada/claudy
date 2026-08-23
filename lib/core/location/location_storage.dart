@@ -10,6 +10,11 @@ class LocationStorage {
   static const keyLastLat = 'settings.location.lastLat';
   static const keyLastLon = 'settings.location.lastLon';
   static const keyLastPlaceName = 'settings.location.lastKnownPlaceName';
+  static const keyLastPlaceNameLat = 'settings.location.lastKnownPlaceName.lat';
+  static const keyLastPlaceNameLon = 'settings.location.lastKnownPlaceName.lon';
+
+  /// Fallback for first runs before the user has picked or fixed a position.
+  static const defaultCoordinate = GeoCoordinate(lat: 52.370216, lon: 4.895168);
 
   static LocationMode readMode(SharedPreferences prefs) {
     final raw = prefs.getString(keyMode);
@@ -24,8 +29,9 @@ class LocationStorage {
   }
 
   static GeoCoordinate readManual(SharedPreferences prefs) {
-    final lat = prefs.getDouble(keyManualLat) ?? 52.370216;
-    final lon = prefs.getDouble(keyManualLon) ?? 4.895168;
+    final lat = prefs.getDouble(keyManualLat);
+    final lon = prefs.getDouble(keyManualLon);
+    if (lat == null || lon == null) return defaultCoordinate;
     return GeoCoordinate(lat: lat, lon: lon);
   }
 
@@ -40,12 +46,23 @@ class LocationStorage {
     return prefs.getString(keyLastPlaceName);
   }
 
-  static Future<void> writeLastPlaceName(SharedPreferences prefs, String? name) async {
-    if (name == null || name.isEmpty) {
-      await prefs.remove(keyLastPlaceName);
-    } else {
-      await prefs.setString(keyLastPlaceName, name);
-    }
+  static GeoCoordinate? readLastPlaceNameAnchor(SharedPreferences prefs) {
+    final lat = prefs.getDouble(keyLastPlaceNameLat);
+    final lon = prefs.getDouble(keyLastPlaceNameLon);
+    if (lat == null || lon == null) return null;
+    return GeoCoordinate(lat: lat, lon: lon);
+  }
+
+  /// Persists the resolved name together with the coordinate it was resolved
+  /// for, so later reads can verify proximity before reusing it.
+  static Future<void> writeLastPlaceName(
+    SharedPreferences prefs,
+    String name,
+    GeoCoordinate anchor,
+  ) async {
+    await prefs.setString(keyLastPlaceName, name);
+    await prefs.setDouble(keyLastPlaceNameLat, anchor.lat);
+    await prefs.setDouble(keyLastPlaceNameLon, anchor.lon);
   }
 
   static Future<void> writeMode(SharedPreferences prefs, LocationMode mode) async {

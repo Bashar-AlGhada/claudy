@@ -1,5 +1,7 @@
+import 'package:claudy/core/i18n/locale_keys.dart';
 import 'package:claudy/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 /// AQI display with color-coded indicator and health recommendations.
 class AirQualityCard extends StatelessWidget {
@@ -35,7 +37,7 @@ class AirQualityCard extends StatelessWidget {
                 ),
                 const SizedBox(width: Tokens.space8),
                 Text(
-                  'Air Quality',
+                  LocaleKeys.aqiTitle.tr,
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -86,44 +88,39 @@ class AirQualityCard extends StatelessWidget {
   _AqiCategory _getCategory(int aqi) {
     if (aqi <= 50) {
       return _AqiCategory(
-        label: 'Good',
+        label: LocaleKeys.aqiGood.tr,
         color: Colors.green,
-        recommendation: 'Air quality is satisfactory. Enjoy outdoor activities.',
+        recommendation: LocaleKeys.aqiRecGood.tr,
       );
     } else if (aqi <= 100) {
       return _AqiCategory(
-        label: 'Moderate',
+        label: LocaleKeys.aqiModerate.tr,
         color: Colors.yellow.shade700,
-        recommendation:
-            'Acceptable quality. Sensitive individuals should limit prolonged outdoor exertion.',
+        recommendation: LocaleKeys.aqiRecModerate.tr,
       );
     } else if (aqi <= 150) {
       return _AqiCategory(
-        label: 'Unhealthy for Sensitive Groups',
+        label: LocaleKeys.aqiUnhealthySensitive.tr,
         color: Colors.orange,
-        recommendation:
-            'Sensitive groups may experience health effects. Consider reducing outdoor activities.',
+        recommendation: LocaleKeys.aqiRecSensitive.tr,
       );
     } else if (aqi <= 200) {
       return _AqiCategory(
-        label: 'Unhealthy',
+        label: LocaleKeys.aqiUnhealthy.tr,
         color: Colors.red,
-        recommendation:
-            'Everyone may experience health effects. Limit prolonged outdoor exertion.',
+        recommendation: LocaleKeys.aqiRecUnhealthy.tr,
       );
     } else if (aqi <= 300) {
       return _AqiCategory(
-        label: 'Very Unhealthy',
+        label: LocaleKeys.aqiVeryUnhealthy.tr,
         color: Colors.purple,
-        recommendation:
-            'Health alert: increased risk for everyone. Avoid outdoor activities.',
+        recommendation: LocaleKeys.aqiRecVeryUnhealthy.tr,
       );
     } else {
       return _AqiCategory(
-        label: 'Hazardous',
+        label: LocaleKeys.aqiHazardous.tr,
         color: Colors.brown.shade700,
-        recommendation:
-            'Health warning of emergency conditions. Stay indoors and keep windows closed.',
+        recommendation: LocaleKeys.aqiRecHazardous.tr,
       );
     }
   }
